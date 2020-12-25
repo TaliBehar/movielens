@@ -71,3 +71,16 @@ removed <- anti_join(temp, validation)
 edx <- rbind(edx, removed)
 
 rm(dl, ratings, movies, test_index, temp, movielens, removed)
+
+### 4. sanitizing the data - timestamp column
+# edx data set contains a timestamp column.This date-time is a point on the timeline, stored as the number
+# of seconds since 1970-01-01 00:00:00 UTC. 
+# convert timestamp into rate date, add rate year column, extract the release year from the movie title, 
+# delete release year from movie title
+
+edx_year_sanitized <- edx %>% 
+  mutate(rate_year = year(as_datetime(timestamp)),
+          rate_date = date(as_datetime(timestamp)),
+          release_year =as.numeric(str_extract(title, "(?<=\\()(\\d{4})(?=\\))")),
+          title= str_remove(as.character(title),"(\\(\\d{4}\\))")) %>% 
+  select(-timestamp)
