@@ -25,6 +25,7 @@ library(knitr)
 library(DescTools) 
 library(colorspace)
 library(cowplot)
+library(formattable)
 
 ### 2. Loading Movielens Dataset
 
@@ -91,7 +92,7 @@ glimpse(edx)
 # Get a glimpse of the sanitized data  
 glimpse(edx_year_sanitized)
 
-### 3. Edx Dataset Overview
+### 5. Edx Dataset Overview
 # edx data set contains _ different users and _ different movies.
 # Hoever, we only gets about 9 million rated movies insted of 746 million. that's because each user 
 # rated selected movies by his personal preference. By building well fitted model, we could fill-in 
@@ -103,3 +104,37 @@ edx_year_sanitized %>%
             "Number of movies" = n_distinct(movieId), 
             "Number of ratings" = nrow(edx)) %>%
   comma(,digits = 0)
+
+#the following matrix contain random sample of 120 movies and 120 users TO DO 
+# figure 1 # 
+users <- sample(unique(edx_year_sanitized$userId), 120)
+edx_year_sanitized %>% 
+  filter(userId %in% users) %>% 
+  select(userId, movieId, rating) %>%
+  mutate(rating = 1) %>%
+  spread(movieId, rating) %>% 
+  select(sample(ncol(.), 120)) %>% 
+  as.matrix() %>% 
+  t(.) %>%
+  image(1:120, 1:120,. , xlab="Movies", ylab="Users")
+abline(h=0:120+0.5, v=0:120+0.5, col = "whitesmoke")
+title("User / Movie Rating Combination")
+
+### 6. create additional partition of training and test set 
+
+set.seed(167, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(167)`
+
+# randomly splitting edx data set into 80% training set and 20% testing set 
+test_index <- createDataPartition(y = edx_year_sanitized$rating, times = 1,
+                                  p = 0.2, list = FALSE)
+train_edx <- edx_year_sanitized %>% slice(-test_index)
+temp <- edx_year_sanitized %>% slice(test_index)
+
+# making sure that the test set includes users and movies that appear in the training set.  
+test_edx <- temp %>% 
+  semi_join(train_edx, by = "movieId") %>%
+  semi_join(train_edx, by = "userId")
+removed <- anti_join(temp,test_edx)
+train_edx <- rbind(train_edx, removed)
+rm(temp, removed)
+
