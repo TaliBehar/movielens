@@ -30,6 +30,7 @@ library(knitr)
 library(DescTools) 
 library(colorspace)
 library(cowplot)
+library(formattable)
 
 ### 2. Loading Movielens Dataset
 
