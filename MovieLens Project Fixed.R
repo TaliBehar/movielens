@@ -120,6 +120,49 @@ edx_year_sanitized %>%
 abline(h=0:120+0.5, v=0:120+0.5, col = "whitesmoke")
 title("User / Movie Rating Combination")
 
+### Rating Score
+#The users average rate score is _ stars while Both median and Mode rate score is the 4 stars (distribution is negatively skewed)
+#About _ milion ratings, which is _ percent of the total ratings, are _ stars and only _ percent of the ratings is 3 stars and less.
+#In general, whole star ratings are more common than half star ratings, and are 79.5 percent of the total ratings
+
+# rating score - mean, median, mode
+edx_year_sanitized %>% 
+  summarize(mean=mean(rating),
+            median=median(rating),
+            mode=Mode(rating))%>% 
+  knitr::kable()
+
+# graph rating score distribution percentage, distinguish between whole and half star
+# figure 2 # 
+data.frame(edx_year_sanitized$rating, 
+             stars=ifelse(floor(edx_year_sanitized$rating)==edx_year_sanitized$rating,"whole_star","half_star"))%>% 
+group_by(edx_year_sanitized.rating, stars) %>% 
+summarize(count=n()) %>% 
+ggplot(aes(x=edx_year_sanitized.rating,y=(count/sum(count)),fill = stars))+
+geom_bar(stat='identity') +
+scale_x_continuous(breaks=seq(0.5, 5, by= 0.5)) +
+scale_y_continuous(labels=percent)+
+scale_fill_manual(values = c("half_star"="lightskyblue", "whole_star"="blue")) +
+geom_vline(xintercept=mean(edx_year_sanitized$rating) ,color="black", linetype="dashed", size=0.5)+
+geom_vline(xintercept=median(edx_year_sanitized$rating) ,color="red", linetype="dashed", size=0.5)+
+labs(x="Stars Rating", y="Ratings Percentage") +
+ggtitle("Stars Ratings Percentage")
+
+# Quantity and quality are connected. 50 percent of the ratings are 4 stars and up.
+
+# Top 15 blockbuster movies
+# figure 3 # 
+edx_year_sanitized %>% 
+  group_by(title) %>%
+  summarize(count_k=n()/1000, avg=mean(rating)) %>% # count in thousands
+  top_n(15,count_k)%>%
+  ggplot(aes(avg,count_k,lable=title)) +
+  geom_point()+
+  geom_text(aes(label=title), size=3,  hjust=0,vjust=0)+
+  xlim(3,5)+
+  ggtitle("Top 15 blockbuster movies")+
+  labs(x="Rating Score", y="Total Number Of Ratings(Thousands)")
+
 ### 6. create additional partition of training and test set 
 
 set.seed(167, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(167)`
@@ -137,4 +180,5 @@ test_edx <- temp %>%
 removed <- anti_join(temp,test_edx)
 train_edx <- rbind(train_edx, removed)
 rm(temp, removed)
+
 
