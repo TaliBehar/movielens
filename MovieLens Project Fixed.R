@@ -181,4 +181,88 @@ removed <- anti_join(temp,test_edx)
 train_edx <- rbind(train_edx, removed)
 rm(temp, removed)
 
+### 7.RMSE function computes the rmse for vectors of ratings and their corresponding predictors
+RMSE <- function(true_ratings, predicted_ratings){
+        sqrt(mean((true_ratings - predicted_ratings)^2))
+} 
+
+####  A. naive model  
+# mu_hat is the average rating of all movies across all users
+# predict the same ratings for all movies regardless of user 
+mu_hat <- mean(train_edx$rating)
+mu_hat
+
+# if we predict all unknown ratings with mu we obtain the following RMSE 
+naive_rmse <- RMSE(test_edx$rating, mu_hat)
+naive_rmse
+
+# we got a number larger than 1, which means our typical error is larger than one star=not good! 
+# the goal is to aspire for RMSE as low as 0.857 
+
+#creating results table with naive approach
+rmse_results <- tibble(method = "Average only", RMSE = naive_rmse)
+
+
+
+
+### 7. userId 
+
+#### User Activity
+
+#Each of the 69.8K different usesrs rated in average _ different movies.
+#the most frequent value of ratings is only _ movies, but there are _ percent of users 
+#who rated more than 500 movies! 
+#The distribution is positively skewed (describe Weibull or Gamma dist??), 
+#as the mean is larger than the mode and median. 
+#some users are more active than others at rating movies
+
+# Users Ratings - mean, median, mode, min, max 
+# figure 4 # 
+train_edx %>%  
+  group_by(userId) %>% 
+  summarize(count=n()) %>% 
+  summarize(mean=round(mean(count)), 
+            median=median(count), 
+            mode=Mode(count,na.rm=FALSE), 
+            min=min(count), max=max(count)) %>%
+  knitr::kable()
+
+# graph number of rating dist. by number of users 
+# figure 5 # 
+user_hist <- 
+  train_edx %>% 
+  group_by(userId) %>%
+  summarize(count=n()) %>% 
+  ggplot(aes(count)) +
+  geom_histogram(bins = 30, color = "gray20")+ 
+  geom_vline(aes(xintercept=median(count),color="median"), 
+             linetype="dashed", size=0.5)+
+  geom_vline(aes(xintercept=Mode(count, na.rm = FALSE),color="Mode"), 
+             linetype="dashed", size=0.5)+
+  geom_vline(aes(xintercept=mean(count),color="mean"), 
+             linetype="dashed", size=0.5)+
+  scale_color_manual(name = "Statistics", 
+                     values = c(median = "skyblue1", mean = "pink1",Mode="blue"))+
+  scale_x_log10()+
+  ggtitle("User Distribution")+ 
+  labs(x="Number of Ratings Count", y="Number of Users") 
+
+# graph number of ratings per user, see extreme observation  
+# figure 6 # 
+rate_p_u<- 
+  train_edx %>% 
+  group_by(userId) %>%
+  summarize(count=n()) %>% 
+  ggplot(aes(userId,count)) +
+  geom_point(alpha=0.1)+
+  geom_hline(aes(yintercept=mean(count)),color="pink1", linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=Mode(count, na.rm = FALSE)),color="blue", linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=median(count)),color="skyblue1", linetype="dashed", size=0.5)+
+  ggtitle("Total Number Of Ratings Per user")+ 
+  labs(x="userId - 69,878 Unique Users", y="Total Ratings Per User")
+
+# plot 2 graphs - place multiple grobs on a page 
+grid.arrange(rate_p_u, user_hist, ncol=2)
+
+
 
