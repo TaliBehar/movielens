@@ -71,6 +71,10 @@ load("D:/OneDrive/Documents/Tali/Tali data science studies/movielens_dataset/mov
 
 #rm(dl, ratings, movies, test_index, temp, movielens, removed)
 
+#### Get A Glimpse Of Edx Data 
+# each row provides a given rating to one movie by specific user
+glimpse(edx)
+
 ### 4. sanitizing the data - timestamp column
 # edx data set contains a timestamp column.This date-time is a point on the timeline, stored as the number
 # of seconds since 1970-01-01 00:00:00 UTC. 
@@ -83,3 +87,19 @@ load("D:/OneDrive/Documents/Tali/Tali data science studies/movielens_dataset/mov
 #          release_year =as.numeric(str_extract(title, "(?<=\\()(\\d{4})(?=\\))")),
 #          title= str_remove(as.character(title),"(\\(\\d{4}\\))")) %>% 
 #  select(-timestamp)
+
+# Get a glimpse of the sanitized data  
+glimpse(edx_year_sanitized)
+
+### 3. Edx Dataset Overview
+# edx data set contains _ different users and _ different movies.
+# Hoever, we only gets about 9 million rated movies insted of 746 million. that's because each user 
+# rated selected movies by his personal preference. By building well fitted model, we could fill-in 
+# these "holes" ....
+
+### summarized counted data 
+edx_year_sanitized %>% 
+  summarize("Number of users" = n_distinct(userId),
+            "Number of movies" = n_distinct(movieId), 
+            "Number of ratings" = nrow(edx)) %>%
+  comma(,digits = 0)
