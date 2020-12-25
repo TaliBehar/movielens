@@ -268,6 +268,17 @@ grid.arrange(rate_p_u, user_hist, ncol=2)
 # Rating score dist. by number of users
 mu <- mean(train_edx$rating)
 
+# plot user rating dist.
+# figure 7 # 
+train_edx %>% 
+  group_by(userId) %>% 
+  summarise(rating_score=mean(rating)) %>% 
+  ggplot(aes(rating_score))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Rating score dist. by number of users")+ 
+  labs(x="Rating score", y="number of users")
+
 # b_u - average rating by user u regardless of movie
 fit_user_ave <- 
   train_edx %>% 
@@ -281,6 +292,34 @@ predicted_ratings <-
   mutate(predicted=mu+b_u) %>%
   pull(predicted)
 
+# plot the user spesific effect - these estimates very substantially
+# figure 8 # 
+user_b_u <- 
+  fit_user_ave %>%
+  ggplot(aes(b_u))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("")+
+  labs(x="b_u", y="number of users")
+
+# plot the user predicred rating
+# figure 9 # 
+user_predicted_ratings <-
+  test_edx %>% 
+  left_join(fit_user_ave, by='userId') %>% 
+  mutate(predicted=mu+b_u)%>% 
+  group_by(userId) %>% 
+  summarise(predicted=mean(predicted)) %>% 
+  ggplot(aes(predicted))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Rating score dist. by number of users")+ 
+  labs(x="Rating score", y="number of users")
+
+# display 2 plots together
+grid.arrange(user_rating_score,user_b_u, ncol=2)
+
+#####
 # model RMSE
 model_1_rmse <- RMSE(true_ratings=test_edx$rating,
                      predicted_ratings=predicted_ratings)
