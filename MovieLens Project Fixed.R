@@ -194,16 +194,13 @@ mu_hat
 
 # if we predict all unknown ratings with mu we obtain the following RMSE 
 naive_rmse <- RMSE(test_edx$rating, mu_hat)
-naive_rmse
+naive_mse <- MSE(test_edx$rating, mu_hat)
 
 # we got a number larger than 1, which means our typical error is larger than one star=not good! 
 # the goal is to aspire for RMSE as low as 0.857 
 
 #creating results table with naive approach
-rmse_results <- tibble(method = "Average only", RMSE = naive_rmse)
-
-
-
+naive_model_results <- tibble(method = "Average only",MSE=naive_mse, RMSE = naive_rmse)
 
 ### 7. userId 
 
@@ -263,6 +260,51 @@ rate_p_u<-
 
 # plot 2 graphs - place multiple grobs on a page 
 grid.arrange(rate_p_u, user_hist, ncol=2)
+
+####  B. first model - modeling user effect
+
+# previous analysis showed that users are rating different from each other. 
+# also, some are very active while others rarely active.  
+# Rating score dist. by number of users
+mu <- mean(train_edx$rating)
+
+# b_u - average rating by user u regardless of movie
+fit_user_ave <- 
+  train_edx %>% 
+  group_by(userId) %>% 
+  summarize(b_u = mean(rating - mu))
+
+#how much our prediction improves once using y=mu+b_u
+predicted_ratings <- 
+  test_edx %>% 
+  left_join(fit_user_ave, by='userId') %>% 
+  mutate(predicted=mu+b_u) %>%
+  pull(predicted)
+
+# model RMSE
+model_1_rmse <- RMSE(true_ratings=test_edx$rating,
+                     predicted_ratings=predicted_ratings)
+# model MSE
+model_1_mse <- MSE(test_edx$rating,predicted_ratings)
+
+#add the results to the table 
+model_1_results <- tibble(method = "User Effect",MSE=model_1_mse, RMSE = model_1_rmse)
+
+# plot the mse
+test_edx %>% 
+  left_join(fit_user_ave, by='userId') %>% 
+  select(userId,rating,b_u, title) %>% 
+  mutate(predicted=b_u+mu,
+         se=((rating-predicted)^2)) %>%
+  group_by(userId) %>% 
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("User Effect model squared errors")+ 
+  labs(x="Mean squared errors", y="number of users")
+
+
 
 
 
