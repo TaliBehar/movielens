@@ -202,7 +202,7 @@ naive_mse <- MSE(test_edx$rating, mu_hat)
 #creating results table with naive approach
 naive_model_results <- tibble(method = "Average only",MSE=naive_mse, RMSE = naive_rmse)
 
-### 7. userId 
+### 8. userId 
 
 #### User Activity
 
@@ -316,7 +316,7 @@ user_predicted_ratings <-
   labs(x="Rating score", y="number of users")
 
 # display 2 plots together
-grid.arrange(user_rating_score,user_b_u, ncol=2)
+grid.arrange(user_predicted_ratings,user_b_u, ncol=2)
 
 #####
 # model RMSE
@@ -343,6 +343,138 @@ test_edx %>%
   ggtitle("User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of users")
 
+#### Regularization #
+
+# choosing penalty terms #
+# create additional partition of training and test set for cross validation
+
+set.seed(2020, sample.kind="Rounding") 
+# if using R 3.5 or earlier, use `set.seed(2020)`
+
+# randomly splitting train set into 90% training set and 10% testing set 
+test_index_cv <- 
+  createDataPartition(y = train_edx$rating, 
+                      times = 1, p = 0.1, list = FALSE)
+
+train_edx_cv <- train_edx %>% slice(-test_index_cv)
+temp <- train_edx %>% slice(test_index_cv)
+
+# making sure that the test set includes users and movies that appear in the training set.
+
+test_edx_cv <- 
+  temp %>% 
+  semi_join(train_edx_cv, by = "movieId") %>%
+  semi_join(train_edx_cv, by = "userId")
+
+removed <- anti_join(temp, test_edx_cv)
+train_edx_cv <- rbind(train_edx_cv, removed)
+rm(temp, removed)
+
+# choosing penalty term (lambda) for user effect
+equation_mu <- mean(train_edx_cv$rating)
+
+equation_sum_u <- 
+  train_edx_cv %>%
+  group_by(userId) %>%
+  summarize(n_i=n(), 
+            s=sum(rating-equation_mu))
+
+lambdas <- seq(0,7,0.05)
+
+user_rmses <- 
+  sapply(lambdas,function(lambda){
+    reg_predicted_ratings <- 
+      test_edx_cv %>%
+      left_join(equation_sum_u, by="userId") %>%
+      mutate(reg_b_u=(s/(n_i+lambda)),
+             predicted=(equation_mu+reg_b_u)) %>%
+      pull(predicted)
+    
+    return(RMSE(true_ratings=test_edx_cv$rating,
+                predicted_ratings=reg_predicted_ratings))
+  })
+
+qplot(lambdas,user_rmses)
+
+penalty_term <- lambdas[which.min(user_rmses)]
+penalty_lambda_rmse <- c(penalty_term,user_rmses[lambda=penalty_term])
+
+# apply lambda on edx train+test
+
+fit_reg_user_ave <- 
+  train_edx %>% 
+  group_by(userId) %>% 
+  summarize(n_i=n(), 
+            reg_b_u=(sum(rating - mu)/(n_i+penalty_term)))
+
+#how much our prediction improves once using y=mu+bi
+reg_predicted_ratings <- 
+  test_edx %>% 
+  left_join(fit_reg_user_ave, by='userId') %>%
+  mutate(predicted=mu+reg_b_u) %>%
+  pull(predicted)
+
+model_1_1_rmse <- RMSE(true_ratings=test_edx$rating,
+                       predicted_ratings=reg_predicted_ratings)
+model_1_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
+
+#add the results to the table 
+model_1_1_results <- tibble(method = "Reg. User Effect",
+                            MSE=model_1_1_mse, RMSE = model_1_1_rmse)
+model_1_1_results
+
+
+### 9. movieId
+
+#### Movie Rating
+
+#In average, each one of the 10.6k different movies get rated _ times.
+#the movies most frequently gets only _ ratings, but there are exeptional like "Pulp Fiction" 
+#that got rated _ more than average with _ users ratings.
+#the distribution is positively skewed, like the user activity dist. (describe Weibull or Gamma dist??) as the mean is larger than the mode and median.
+
+# Movie ratings- mean, median, mode, min, max  
+train_edx %>% 
+  group_by(movieId) %>%
+  summarize(count=n()) %>% 
+  summarize(mean=round(mean(count)), 
+            median=median(count), 
+            mode=Mode(count,na.rm=FALSE), 
+            min=min(count), max=max(count)) %>%
+  knitr::kable()
+
+# figure 10 # 
+# graph number of rating dist. by number of movies 
+movie_hist <- 
+  train_edx %>% 
+  group_by(movieId) %>%
+  summarize(count=n()) %>%
+  ggplot(aes(count)) +
+  geom_histogram(bins = 30, color = "gray20")+ 
+  geom_vline(aes(xintercept=median(count),color="median"), linetype="dashed", size=0.5)+
+  geom_vline(aes(xintercept=Mode(count, na.rm = FALSE),color="Mode"), linetype="dashed", size=0.5)+
+  geom_vline(aes(xintercept=mean(count),color="mean"), linetype="dashed", size=0.5)+
+  scale_color_manual(name = "Statistics", values = c(median = "skyblue1", mean = "pink1",Mode="blue"))+
+  scale_x_log10()+
+  ggtitle("movieId Distribution")+ 
+  labs(x="Number Of Ratings Count", y="Number of Movies") 
+
+#graph number of ratings per movie, see extreme observation
+rate_p_m<- 
+  train_edx %>% 
+  group_by(title) %>%
+  summarize(count=n()) %>%
+  ggplot(aes(title,count)) +
+  geom_point(alpha=0.1)+
+  geom_hline(aes(yintercept=mean(count)),color="pink1", linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=Mode(count, na.rm = FALSE)),color="blue", linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=median(count)),color="skyblue1", linetype="dashed", size=0.5)+
+  ggtitle("Total Number Of Ratings Per Movie")+ 
+  labs(x="10,677 Unique Movies", y="Total Ratings Per Movie") + 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+# plot 2 graphs - place multiple grobs on a page
+grid.arrange(rate_p_m, movie_hist, ncol=2)
 
 
 
