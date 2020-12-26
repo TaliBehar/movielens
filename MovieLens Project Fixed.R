@@ -1124,7 +1124,7 @@ model_5_results
 
 ### 13. Genres
 
-# separting train_edx rows for unique genres
+# separting train + test edx rows for unique genres
 train_edx_genres <- train_edx %>%  separate_rows(genres, sep="\\|")
 test_edx_genres <- test_edx %>%  separate_rows(genres, sep="\\|")
 
@@ -1217,7 +1217,7 @@ model_6_results <-
 model_6_results
 
 # plot the mse
-# figure 15 #
+# figure 32 #
 test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
   left_join(fit_reg_movie_ave, by='movieId') %>%
   left_join(fit_reg_user_movie_ave, by='userId') %>%
@@ -1232,4 +1232,47 @@ test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
   ggtitle("7")+ 
   labs(x="Mean squared errors", y="number of movies")
+
+#####################
+# test on validation#
+#####################
+
+test_validation <- 
+  validation %>%  
+  mutate (rate_date = date(as_datetime(timestamp)),
+          release_year =as.numeric(str_extract(title,"(?<=\\()(\\d{4})(?=\\))")),
+          title= str_remove(as.character(title), "(\\(\\d{4}\\))")) %>% 
+  select(-timestamp) %>%
+  separate_rows(genres, sep="\\|")
+
+fit_genre_ave <-  
+  train_edx_genres %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  group_by(genres) %>%
+  summarize(b_g=mean(rating-mu-reg_b_i-reg_b_ui-d_ui))
+
+predicted_ratings <- 
+  test_validation %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  left_join(fit_genres_ave, by='genres') %>% 
+  mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui+b_g) %>%
+  pull(predicted)
+
+model_final_rmse <- RMSE(true_ratings=test_validation$rating,
+                         predicted_ratings=predicted_ratings)
+model_final_mse <- MSE(test_validation$rating,predicted_ratings)
+
+#add the results to the table 
+model_final_results <- 
+  tibble(method = "final",
+         MSE=model_final_mse, RMSE = model_final_rmse)
+model_final_results
+
+
 

@@ -1272,5 +1272,183 @@ model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
                           MSE=model_5_mse, RMSE = model_5_rmse)
 model_5_results
 ```
-### 13. 
+### 13. Genres
+
+separting train + test edx rows for unique genres
+```{r }
+train_edx_genres <- train_edx %>%  separate_rows(genres, sep="\\|")
+test_edx_genres <- test_edx %>%  separate_rows(genres, sep="\\|")
+```
+
+Distribution of movie ratings for each gener
+```{r gener dist, echo=FALSE}
+# figure 29 # 
+train_edx_genres %>% 
+  group_by(genres) %>% 
+  filter(genres!="(no genres listed)") %>%
+  summarize(count = n(),ave_rating=mean(rating)) %>% 
+  arrange(desc(count)) %>%
+  mutate(percentage=100*count/sum(count)) %>% 
+  ggplot(aes(ave_rating,percentage))+
+  geom_point()+
+  geom_text(aes(label=genres), size=3,  hjust=0,vjust=0)+
+  ggtitle("Distribution of movies for each gener")+ 
+  labs(x="average rating score", y="percentage of the rating count")
+```
+
+filter genres with ave score over 3.4 stars and top 20 percent of total ratings
+```{r filter genres, echo=FALSE}
+train_edx_genres %>% 
+  group_by(genres) %>% 
+  filter(genres!="(no genres listed)") %>%
+  summarize(count_m = n()/1000000, #number of ratings in millions
+            ave_rating=mean(rating),
+            year=release_year[1]) %>% 
+  mutate(percentage=100*count_m/sum(count_m)) %>% 
+  filter(ave_rating>=3.4 & count_m>=quantile(count_m, 0.80)) %>% 
+  arrange(desc(percentage)) %>%   
+  select(genres,count_m,ave_rating, percentage) %>% 
+  knitr::kable()
+```
+
+graph geners over the years
+```{r graph geners over the years, echo=FALSE}
+# figure 30 #
+genres_rating_over_years <- 
+  train_edx_genres %>% 
+  group_by(genres,release_year) %>% 
+  summarize(count_k=n()/1000,     #number of ratings in thousand
+            year=release_year[1]) %>%
+  filter(genres %in% c("Drama", "Comedy", "Action","Thriller"),
+         release_year>="1960") %>%
+  ggplot(aes(x =year, y = count_k)) +
+  geom_point(aes(color=genres))+
+  geom_smooth()
+
+# score over the years
+# figure 31 #
+genres_score_over_years <- 
+  train_edx_genres %>% 
+  group_by(genres,release_year) %>% 
+  summarize(ave=mean(rating),
+            year=release_year[1]) %>%
+  filter(genres %in% c("Drama", "Comedy", "Action", "Thriller"),
+         release_year>="1960") %>%
+  ggplot(aes(x =year, y = ave)) +
+  geom_point(aes(color=genres)) + 
+  geom_smooth()
+
+# plot 2 graphs - place multiple grobs on a page
+plot_grid(genres_rating_over_years,genres_score_over_years, ncol=1, align="v")
+```
+
+#### G. Sisth model - Reg. Movie + User Effect + Time Effect + Genres Effect 
+
+```{r fit geners model}
+fit_genres_ave <-  
+  train_edx_genres %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  group_by(genres) %>%
+  summarize(b_g=mean(rating-mu-reg_b_i-reg_b_ui-d_ui))
+```
+
+```{r predict geners model ratings}
+predicted_ratings <- 
+  test_edx_genres %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  left_join(fit_genres_ave, by='genres') %>% 
+  mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui+b_g) %>%
+  pull(predicted)
+```
+
+```{r model 6 results}
+model_6_rmse <- RMSE(true_ratings=test_edx_genres$rating,
+                     predicted_ratings=predicted_ratings)
+
+model_6_mse <- MSE(test_edx_genres$rating,predicted_ratings)
+
+#add the results to the table 
+model_6_results <- 
+  tibble(method = "Reg. Movie + User Effect + Time Effect + Genres Effect",
+         MSE=model_6_mse, RMSE = model_6_rmse)
+model_6_results
+```
+
+plot the mse
+```{r model 6 mse plot, echo=FALSE}
+# figure 32 #
+test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  left_join(fit_genres_ave, by='genres') %>% 
+  mutate((predicted = mu+reg_b_i+reg_b_ui+d_ui+b_g),
+         se=((rating-predicted)^2)) %>% 
+  group_by(movieId) %>% 
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("7")+ 
+  labs(x="Mean squared errors", y="number of movies")
+```
+
+#####################
+# test on validation#
+#####################
+
+```{r test validation}
+test_validation <- 
+  validation %>%  
+  mutate (rate_date = date(as_datetime(timestamp)),
+          release_year =as.numeric(str_extract(title,"(?<=\\()(\\d{4})(?=\\))")),
+          title= str_remove(as.character(title), "(\\(\\d{4}\\))")) %>% 
+  select(-timestamp) %>%
+  separate_rows(genres, sep="\\|")
+```
+
+```{r fit final model}
+fit_genre_ave <-  
+  train_edx_genres %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  group_by(genres) %>%
+  summarize(b_g=mean(rating-mu-reg_b_i-reg_b_ui-d_ui))
+```
+
+```{r predict ratings validation set }
+predicted_ratings <- 
+  test_validation %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  left_join(fit_genres_ave, by='genres') %>% 
+  mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui+b_g) %>%
+  pull(predicted)
+```
+
+```{r final model results }
+model_final_rmse <- RMSE(true_ratings=test_validation$rating,
+                         predicted_ratings=predicted_ratings)
+model_final_mse <- MSE(test_validation$rating,predicted_ratings)
+
+#add the results to the table 
+model_final_results <- 
+  tibble(method = "final",
+         MSE=model_final_mse, RMSE = model_final_rmse)
+model_final_results
+```
+
+
+
+
 
