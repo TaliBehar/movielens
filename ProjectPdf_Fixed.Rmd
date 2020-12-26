@@ -865,3 +865,156 @@ data_frame(original = fit_user_movie_ave$b_ui,
   ggplot(aes(original, regularlized, size=sqrt(n))) + 
   geom_point(shape=1, alpha=0.5) 
 ```
+
+### 11. Age of the movie at rating
+#### how old was the movie during rating
+
+graph - scoring by age; rate year vs. release year, fill= average rating score
+```{r rate year vs release year, echo=FALSE}
+# figure 19 # 
+scoring_by_age <- 
+  train_edx %>% 
+  group_by(title,rate_year) %>% 
+  summarize(count=n(), 
+            Ave_rating_score=mean(rating),
+            rate_year=rate_year[1], 
+            release_year=release_year[1]) %>%
+  ggplot(aes(x=release_year,y=rate_year,fill=Ave_rating_score)) + 
+  geom_tile() + 
+  coord_fixed(expand = FALSE)+
+  scale_fill_continuous_sequential(palette = "Blues")+
+  ggtitle(" Movie Rating score - Release Year Vs. Rate Year")+ 
+  labs(x="Movie Release Year", y="Movie Rate Year") 
+
+# figure 20#
+# graph - average scoring by age
+ave_scoring_by_age <- 
+  train_edx %>% 
+  group_by(title,rate_year) %>% 
+  summarize(count=n(), 
+            Ave_rating_score=mean(rating),
+            rate_year=rate_year[1], 
+            release_year=release_year[1]) %>% 
+  group_by(release_year) %>% #mutate(ave=mean(Ave_rating_score)) %>%
+  ggplot(aes(x=release_year,y=as.character('mean'),fill=Ave_rating_score)) + 
+  geom_tile() + 
+  coord_fixed(expand = FALSE)+
+  scale_fill_continuous_sequential(palette = "Blues")+
+  ggtitle("mean Movie Rating score")+ 
+  labs(x="Movie Release Year", y="mean") 
+
+# plot 2 graphs - place multiple grobs on a page
+plot_grid(ave_scoring_by_age, scoring_by_age, ncol=1, align="v") # TO DO- share legends 
+```
+
+1984 release year example (filter movies with less than 1000 ratings)
+```{r 1984 release year example, echo=FALSE}
+age_ex._1984 <- 
+  train_edx %>% 
+  group_by(title, rate_year) %>%
+  summarize(count=n(),Ave_rating_score = mean(rating),
+            rate_year=rate_year[1],
+            release_year=release_year[1]) %>% 
+  filter(release_year=="1984" & count>1000) %>% 
+  group_by(rate_year) %>%
+  mutate(ave = mean(Ave_rating_score)) %>% arrange(rate_year)
+# display first 10 in a table
+age_ex._1984[1:10,] %>% 
+  knitr::kable() 
+``` 
+
+```{r eval=FALSE, include=FALSE}
+# figure  # 
+# 1984 release year example
+#age_ex._1984 %>% ggplot(aes(x=as.character(release_year),y=rate_year,fill=Ave_rating_score)) + 
+#  geom_tile() + 
+#  coord_fixed(expand = FALSE)+
+#  scale_fill_continuous_sequential(palette = "Blues")+
+#  ggtitle("1984 release year example")+ 
+#  labs(x="Movie Release Year", y="Movie Rate Year") 
+```
+
+age of movie at rating - mean, median, mode, min, max  
+```{r age summarize, echo=FALSE}
+train_edx %>% 
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  summarize(mean=mean(age_at_rating), 
+            median=median(age_at_rating), 
+            mode=Mode(age_at_rating,na.rm=FALSE), 
+            min=min(age_at_rating), max=max(age_at_rating)) %>% 
+  knitr::kable() 
+```
+
+graph average Ratings distribution by the age of the movie
+movies with 5000 ratings and up
+```{r age ave rating, echo=FALSE}
+# figure 21 #
+train_edx %>% 
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  group_by(age_at_rating) %>%
+  summarize(k_count=n()/1000, ave=mean(rating)) %>% filter(k_count>5) %>%
+  ggplot(aes(age_at_rating,ave)) +
+  geom_line(aes(color = k_count))+
+  scale_color_gradient2(low = 'white', mid ='blue' , high = 'red')+
+  geom_hline(aes(yintercept=mean(train_edx$rating)),color="blue", linetype="dashed", size=0.5)+
+  ggtitle("average Ratings distribution by the age of the movie")+ 
+  labs(x="Age of a movie at rating", y="Average rating score")
+```
+
+some avidence for age effect (the points=movies)
+```{r avidence for age effect, echo=FALSE}
+# figure 22 # 
+train_edx %>% 
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  group_by(title) %>%
+  summarize(count = n(), 
+            ave_age_at_rating=mean(age_at_rating),
+            ave_rating = mean(rating)) %>%
+  ggplot(aes(ave_age_at_rating, ave_rating)) +
+  geom_point() + 
+  geom_smooth()+
+  ggtitle("")+ 
+  labs(x="ave age at rating", y="Average Rating Score") 
+```
+
+#### Classical Hollywood cinema
+Classical Hollywood cinema is a term used in film criticism to describe both a narrative and visual 
+style of filmmaking which became characteristic of American cinema between the 1910s 
+(rapidly after World War I) and the 1960s
+(https://en.wikipedia.org/wiki/Classical_Hollywood_cinema) # TO DO - HYPERLINK
+
+Classical Hollywood cinema - number of movies and their average rating
+```{r classical summarize, echo=FALSE}
+train_edx %>% 
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0 & release_year %in% "1915":"1960") %>%
+  summarize(n_movies=n_distinct(movieId),
+            ave_rating=mean(rating),
+            ave_age=mean(age_at_rating),
+            min_age=min(age_at_rating), 
+            max_age=max(age_at_rating)) %>%
+  knitr::kable()
+```
+
+Classical Hollywood cinema - graph old movies from years 36-93 yeard old
+```{r graph old movies, echo=FALSE}
+# figure 23 #
+train_edx %>% 
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0 & release_year %in% "1915":"1960") %>%
+  group_by(age_at_rating) %>%
+  summarize(count=n(), 
+            ave=mean(rating), 
+            rating=rating[1]) %>% 
+  ggplot(aes(age_at_rating,ave)) +
+  geom_point(aes(color = count))+
+  geom_hline(aes(yintercept=3.899027),color="blue", linetype="dashed", size=0.5)+
+  scale_color_gradient2(low = 'white', mid ='blue' , high = 'red')+
+  ggtitle("Classical Hollywood cinema movies 1915-1960")+ 
+  labs(x="Age of a movie at rating", y="average rating score") 
+```
+
+
