@@ -625,7 +625,7 @@ data_frame(original = fit_movie_ave$b_i,
   ggplot(aes(original, regularlized, size=sqrt(n))) + 
   geom_point(shape=1, alpha=0.5) 
 
-
+### 10. movieId + userId
 ####  D. third model - modeling movie + user effect
 
 # b_ui - average rating for movie i with user specific effect
@@ -747,10 +747,10 @@ model_3_1_results <- tibble(method = "Reg. Movie + User Effect",
                             MSE=model_3_1_mse, RMSE = model_3_1_rmse)
 model_3_1_results
 
-#to see hoe the estimates shrink, plot the regularized estimates vs least squre estimates 
-# figure 16 #
+#to see how the estimates shrink, plot the regularized estimates vs least squre estimates 
+# figure 18 #
 data_frame(original = fit_user_movie_ave$b_ui, 
            regularlized = fit_reg_user_movie_ave$reg_b_ui,
-          n=fit_reg_user_movie_ave$n_i) %>%
+           n=fit_reg_user_movie_ave$n_i) %>%
   ggplot(aes(original, regularlized, size=sqrt(n))) + 
   geom_point(shape=1, alpha=0.5) 
