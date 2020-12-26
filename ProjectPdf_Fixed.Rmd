@@ -722,4 +722,146 @@ data_frame(original = fit_movie_ave$b_i,
   geom_point(shape=1, alpha=0.5) 
 ```
 
+####  D. third model - modeling movie + user effect
 
+b_ui - average rating for movie i with user specific effect
+```{r fit movie user ave}
+fit_user_movie_ave <- 
+  train_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>%
+  group_by(userId) %>%
+  summarize(b_ui = mean(rating - mu - b_i))
+```
+
+how much our prediction improves once using y=mu+bi+b_ui
+```{r movie user predicted ratings}
+predicted_ratings <- 
+  test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>%
+  left_join(fit_user_movie_ave, by='userId') %>%
+  mutate(predicted = mu+b_i+b_ui) %>%
+  pull(predicted)
+```
+
+```{r model 3 results}
+# model RMSE
+model_3_rmse <- RMSE(true_ratings=test_edx$rating,
+                     predicted_ratings=predicted_ratings)
+# model MSE
+model_3_mse <- MSE(test_edx$rating,predicted_ratings)
+
+#add the results to the table 
+model_3_results <- tibble(method = "Movie + User Effect",
+                          MSE=model_3_mse, RMSE = model_3_rmse)
+model_3_results
+```
+# plot the mse
+# figure 17 #
+test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>%
+  left_join(fit_user_movie_ave, by="userId") %>%
+  select(movieId,userId,rating,b_i,b_ui,title) %>% 
+  mutate(predicted=mu+b_i+b_ui,
+         se=((rating-predicted)^2)) %>%
+  group_by(movieId) %>% 
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Movie + User Effect model squared errors")+ 
+  labs(x="Mean squared errors", y="number of movies")
+
+#### Regularization #
+
+choosing penalty terms #
+```{r model 3.1 penalty term}
+lambdas <- seq(0,10,0.25)
+
+equation_mu <- mean(train_edx_cv$rating)
+
+movie_user_rmses <- 
+  sapply(lambdas,function(lambda){
+    fit_reg_movie_ave <- 
+      train_edx_cv %>% 
+      group_by(movieId) %>%
+      summarize(n_i=n(),
+                s= sum(rating - equation_mu),
+                reg_b_i=(s/(n_i+lambda)))
+    
+    fit_reg_user_movie_ave <- 
+      train_edx_cv %>%
+      left_join(fit_reg_movie_ave, by='movieId') %>%
+      group_by(userId) %>%
+      summarize(n_i=n(), 
+                s= sum(rating -reg_b_i -equation_mu), 
+                reg_b_ui=(s/(n_i+lambda)))
+    
+    reg_predicted_ratings <- 
+      test_edx_cv %>% 
+      left_join(fit_reg_movie_ave, by='movieId') %>%   
+      left_join(fit_reg_user_movie_ave, by='userId') %>%
+      mutate(predicted = equation_mu+reg_b_i+reg_b_ui) %>%
+      pull(predicted)
+    
+    return(RMSE(true_ratings=test_edx_cv$rating,
+                predicted_ratings=reg_predicted_ratings))
+    
+  })
+
+qplot(lambdas,movie_user_rmses)
+```
+
+```{r model 3 lambda}
+penalty_term <- lambdas[which.min(movie_user_rmses)]
+penalty_lambda_rmse <- c(penalty_term,movie_user_rmses[lambda=penalty_term])
+penalty_lambda_rmse
+```
+
+apply lambda on edx train+test
+```{r fet reg movie user ave}
+fit_reg_movie_ave <- 
+  train_edx %>%
+  group_by(movieId) %>%
+  summarize(n_i=n(), 
+            s= sum(rating - mu),
+            reg_b_i=(s/(n_i+penalty_term)))
+
+fit_reg_user_movie_ave <- 
+  train_edx %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  group_by(userId) %>% 
+  summarize(n_i=n(),
+            s= sum(rating -reg_b_i -mu), 
+            reg_b_ui=(s/(n_i+penalty_term)))
+```
+
+```{r movie+user efect predicted ratings}
+predicted_ratings <- 
+  test_edx %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  mutate(predicted = mu+reg_b_i+reg_b_ui) %>%
+  pull(predicted)
+```
+
+```{r model 3.1 results}
+model_3_1_rmse <- RMSE(true_ratings=test_edx$rating,
+                       predicted_ratings=predicted_ratings)
+
+model_3_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
+
+#add the results to the table 
+model_3_1_results <- tibble(method = "Reg. Movie + User Effect",
+                            MSE=model_3_1_mse, RMSE = model_3_1_rmse)
+model_3_1_results
+```
+
+to see how the estimates shrink, plot the regularized estimates vs least squre estimates 
+```{r plot estimate}
+# figure 18 #
+data_frame(original = fit_user_movie_ave$b_ui, 
+           regularlized = fit_reg_user_movie_ave$reg_b_ui,
+           n=fit_reg_user_movie_ave$n_i) %>%
+  ggplot(aes(original, regularlized, size=sqrt(n))) + 
+  geom_point(shape=1, alpha=0.5) 
+```
