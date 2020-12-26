@@ -1,0 +1,406 @@
+---
+title: "ProjectPdf_Fixed"
+author: "Tali"
+date: "12/25/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center", out.width = '65%',
+                      message=FALSE, warning=FALSE)
+```
+
+# MovieLens Project # 
+
+## Data Preperation
+
+### 1. installing required packeges
+
+```{r required packeges, eval=FALSE, include=FALSE}
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
+if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
+if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
+if(!require(scales)) install.packages("scales", repos = "http://cran.us.r-project.org")
+if(!require(gridExtra)) install.packages("gridExtra", repos = "http://cran.us.r-project.org")
+if(!require(knitr)) install.packages("knitr", repos = "http://cran.us.r-project.org")
+if(!require(DescTools)) install.packages("DescTools", repos = "http://cran.us.r-project.org")
+if(!require(colorspace)) install.packages("colorspace", repos = "http://cran.us.r-project.org")
+if(!require(cowplot)) install.packages("cowplot", repos = "http://cran.us.r-project.org")
+```
+
+```{r install required packeges, echo=TRUE}
+library(tidyverse)
+library(caret)
+library(data.table)
+library(lubridate)
+library(scales)
+library(gridExtra)
+library(knitr)
+library(DescTools) 
+library(colorspace)
+library(cowplot)
+library(formattable)
+```
+
+### 2. Loading Movielens Dataset
+
+```{r Loading Movielens Dataset, echo=TRUE}
+# MovieLens 10M dataset:
+# https://grouplens.org/datasets/movielens/10m/
+# http://files.grouplens.org/datasets/movielens/ml-10m.zip
+
+### 3.Create Edx set (training set) and Validation Sets (final hold-out test set)
+
+#### Use a shortcut to load the data from local computer
+load("D:/OneDrive/Documents/Tali/Tali data science studies/movielens_dataset/movielens_dataset_fixed.RData")
+####
+
+#dl <- tempfile()
+#download.file("http://files.grouplens.org/datasets/movielens/ml-10m.zip", dl)
+
+#ratings <- fread(text = gsub("::", "\t", readLines(unzip(dl, "ml-10M100K/ratings.dat"))),
+#                 col.names = c("userId", "movieId", "rating", "timestamp"))
+
+#movies <- str_split_fixed(readLines(unzip(dl, "ml-10M100K/movies.dat")), "\\::", 3)
+#colnames(movies) <- c("movieId", "title", "genres")
+
+# if using R 3.6 or earlier:
+#movies <- as.data.frame(movies) %>% mutate(movieId = as.numeric(levels(movieId))[movieId],
+#                                          title = as.character(title),
+#                                         genres = as.character(genres))
+
+#movielens <- left_join(ratings, movies, by = "movieId")
+
+# Validation set will be 10% of MovieLens data
+#set.seed(1, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(1)`
+#test_index <- createDataPartition(y = movielens$rating, times = 1, p = 0.1, list = FALSE)
+#edx <- movielens[-test_index,]
+#temp <- movielens[test_index,]
+
+# Make sure userId and movieId in validation set are also in edx set
+#validation <- temp %>% 
+#  semi_join(edx, by = "movieId") %>%
+#  semi_join(edx, by = "userId")
+
+# Add rows removed from validation set back into edx set
+#removed <- anti_join(temp, validation)
+#edx <- rbind(edx, removed)
+
+#rm(dl, ratings, movies, test_index, temp, movielens, removed)
+```
+
+#### Get A Glimpse Of Edx Data 
+each row provides a given rating to one movie by specific user
+```{r glimpse Of edx, echo=FALSE}
+glimpse(edx)
+```
+
+### 4. sanitizing the data - timestamp column
+edx data set contains a timestamp column.This date-time is a point on the timeline, stored as the number
+of seconds since 1970-01-01 00:00:00 UTC. 
+convert timestamp into rate date, add rate year column, extract the release year from the movie title, 
+delete release year from movie title
+
+```{r sanitizing the data, echo=TRUE}
+#edx_year_sanitized <- edx %>% 
+#  mutate(rate_year = year(as_datetime(timestamp)),
+#          rate_date = date(as_datetime(timestamp)),
+#          release_year =as.numeric(str_extract(title, "(?<=\\()(\\d{4})(?=\\))")),
+#          title= str_remove(as.character(title),"(\\(\\d{4}\\))")) %>% 
+#  select(-timestamp)
+```
+
+Get a glimpse of the sanitized data 
+```{r glimpse of the sanitized data, echo=FALSE}
+glimpse(edx_year_sanitized)
+```
+
+### 5. Edx Dataset Overview
+
+edx data set contains _ different users and _ different movies.
+Hoever, we only gets about 9 million rated movies insted of 746 million. that's because each user rated selected movies by his personal preference. By building well fitted model, we could fill-in these "holes" ....
+
+### summarized counted data
+```{r summarized counted data, echo=FALSE}
+edx_year_sanitized %>% 
+  summarize("Number of users" = n_distinct(userId),
+            "Number of movies" = n_distinct(movieId), 
+            "Number of ratings" = nrow(edx)) %>%
+  comma(,digits = 0)
+```
+
+the following matrix contain random sample of 120 movies and 120 users
+```{r preview matrix echo=FALSE}
+# figure 1 # 
+users <- sample(unique(edx_year_sanitized$userId), 120)
+edx_year_sanitized %>% 
+  filter(userId %in% users) %>% 
+  select(userId, movieId, rating) %>%
+  mutate(rating = 1) %>%
+  spread(movieId, rating) %>% 
+  select(sample(ncol(.), 120)) %>% 
+  as.matrix() %>% 
+  t(.) %>%
+  image(1:120, 1:120,. , xlab="Movies", ylab="Users")
+abline(h=0:120+0.5, v=0:120+0.5, col = "whitesmoke")
+title("User / Movie Rating Combination")
+```
+
+### Rating Score
+The users average rate score is _ stars while Both median and Mode rate score is the 4 stars (distribution is negatively skewed) About _ milion ratings, which is percent of the total ratings, are _ stars and only _ percent of the ratings is 3 stars and less.
+In general, whole star ratings are more common than half star ratings, and are 79.5 percent of the total ratings
+
+```{r rating score summarize, echo=FALSE}
+# rating score - mean, median, mode
+edx_year_sanitized %>% 
+  summarize(mean=mean(rating),
+            median=median(rating),
+            mode=Mode(rating))%>% 
+  knitr::kable()
+```
+
+graph rating score distribution percentage, distinguish between whole and half star
+```{r graph rating score distribution, echo=FALSE}
+# figure 2 # 
+data.frame(edx_year_sanitized$rating, 
+stars=ifelse(floor(edx_year_sanitized$rating)==edx_year_sanitized$rating,
+             "whole_star","half_star"))%>% 
+group_by(edx_year_sanitized.rating, stars) %>% 
+summarize(count=n()) %>% 
+ggplot(aes(x=edx_year_sanitized.rating,y=(count/sum(count)),fill = stars))+
+geom_bar(stat='identity') +
+scale_x_continuous(breaks=seq(0.5, 5, by= 0.5)) +
+scale_y_continuous(labels=percent)+
+scale_fill_manual(values = c("half_star"="lightskyblue", "whole_star"="blue")) +
+geom_vline(xintercept=mean(edx_year_sanitized$rating) ,color="black", linetype="dashed", size=0.5)+
+geom_vline(xintercept=median(edx_year_sanitized$rating) ,color="red", linetype="dashed", size=0.5)+
+labs(x="Stars Rating", y="Ratings Percentage") +
+ggtitle("Stars Ratings Percentage")
+``` 
+Quantity and quality are connected. 50 percent of the ratings are 4 stars and up.
+
+Top 15 blockbuster movies
+```{r graph blockbuster movies, echo=FALSE}
+# figure 3 # 
+edx_year_sanitized %>% 
+  group_by(title) %>%
+  summarize(count_k=n()/1000, avg=mean(rating)) %>% # count in thousands
+  top_n(15,count_k)%>%
+  ggplot(aes(avg,count_k,lable=title)) +
+  geom_point()+
+  geom_text(aes(label=title), size=3,  hjust=0,vjust=0)+
+  xlim(3,5)+
+  ggtitle("Top 15 blockbuster movies")+
+  labs(x="Rating Score", y="Total Number Of Ratings(Thousands)")
+```
+
+### 6. create additional partition of training and test set 
+```{r additional partition}
+set.seed(167, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(167)`
+
+# randomly splitting edx data set into 80% training set and 20% testing set 
+test_index <- createDataPartition(y = edx_year_sanitized$rating, times = 1,
+                                  p = 0.2, list = FALSE)
+train_edx <- edx_year_sanitized %>% slice(-test_index)
+temp <- edx_year_sanitized %>% slice(test_index)
+
+# making sure that the test set includes users and movies that appear in the training set.  
+test_edx <- temp %>% 
+  semi_join(train_edx, by = "movieId") %>%
+  semi_join(train_edx, by = "userId")
+removed <- anti_join(temp,test_edx)
+train_edx <- rbind(train_edx, removed)
+rm(temp, removed)
+```
+
+### 7.RMSE function computes the rmse for vectors of ratings and their corresponding predictors
+```{r RMSE function}
+RMSE <- function(true_ratings, predicted_ratings){
+        sqrt(mean((true_ratings - predicted_ratings)^2))
+} 
+```
+
+####  A. naive model  
+mu_hat is the average rating of all movies across all users
+predict the same ratings for all movies regardless of user 
+```{r mu hat}
+mu_hat <- mean(train_edx$rating)
+mu_hat
+```
+
+if we predict all unknown ratings with mu we obtain the following RMSE 
+```{r naive_rmse}
+naive_rmse <- RMSE(test_edx$rating, mu_hat)
+naive_mse <- MSE(test_edx$rating, mu_hat)
+
+#creating results table with naive approach
+naive_model_results <- tibble(method = "Average only",MSE=naive_mse, RMSE = naive_rmse)
+```
+we got a number larger than 1, which means our typical error is larger than one star=not good! 
+the goal is to aspire for RMSE as low as 0.8649 
+
+### 7. userId 
+
+#### User Activity
+
+Each of the 69.8K different usesrs rated in average _ different movies.the most frequent value of ratings is only _ movies, but there are _ percent of users who rated more than 500 movies! 
+The distribution is positively skewed (describe Weibull or Gamma dist??), as the mean is larger than the mode and median. 
+some users are more active than others at rating movies
+
+Users Ratings - mean, median, mode, min, max 
+```{r users summarize, echo=FALSE}
+train_edx %>%  
+  group_by(userId) %>% 
+  summarize(count=n()) %>% 
+  summarize(mean=round(mean(count)), 
+            median=median(count), 
+            mode=Mode(count,na.rm=FALSE), 
+            min=min(count), max=max(count)) %>%
+  knitr::kable()
+```
+
+```{r number of rating dist, echo=FALSE}
+#graph number of rating dist. by number of users 
+# figure 5 # 
+user_hist <- 
+  train_edx %>% 
+  group_by(userId) %>%
+  summarize(count=n()) %>% 
+  ggplot(aes(count)) +
+  geom_histogram(bins = 30, color = "gray20")+ 
+  geom_vline(aes(xintercept=median(count),color="median"), 
+                 linetype="dashed", size=0.5)+
+  geom_vline(aes(xintercept=Mode(count, na.rm = FALSE),color="Mode"), 
+                 linetype="dashed", size=0.5)+
+  geom_vline(aes(xintercept=mean(count),color="mean"), 
+                 linetype="dashed", size=0.5)+
+  scale_color_manual(name = "Statistics", 
+                     values = c(median = "skyblue1", mean = "pink1",Mode="blue"))+
+  scale_x_log10()+
+  ggtitle("User Distribution")+ 
+  labs(x="Number of Ratings Count", y="Number of Users") 
+
+#graph number of ratings per user, see extreme observation  
+# figure 6 # 
+rate_p_u<- 
+  train_edx %>% 
+  group_by(userId) %>%
+  summarize(count=n()) %>% 
+  ggplot(aes(userId,count)) +
+  geom_point(alpha=0.1)+
+  geom_hline(aes(yintercept=mean(count)),color="pink1", 
+                 linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=Mode(count, na.rm = FALSE)),color="blue",
+                 linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=median(count)),color="skyblue1", 
+                 linetype="dashed", size=0.5)+
+  ggtitle("Total Number Of Ratings Per user")+ 
+  labs(x="userId - 69,878 Unique Users", y="Total Ratings Per User")
+
+#plot 2 graphs - place multiple grobs on a page 
+grid.arrange(rate_p_u, user_hist, ncol=2)
+```
+
+####  B. first model - modeling user effect
+
+previous analysis showed that users are rating different from each other. 
+also, some are very active while others rarely active.  
+Rating score dist. by number of users
+```{r mu}
+mu <- mean(train_edx$rating)
+```
+
+plot user rating dist.
+```{r user rating score dist, echo=FALSE}
+# figure 7 # 
+train_edx %>% 
+  group_by(userId) %>% 
+  summarise(rating_score=mean(rating)) %>% 
+  ggplot(aes(rating_score))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Rating score dist. by number of users")+ 
+  labs(x="Rating score", y="number of users")
+```
+
+b_u - average rating by user u regardless of movie
+```{r b_u}
+fit_user_ave <- 
+  train_edx %>% 
+  group_by(userId) %>% 
+  summarize(b_u = mean(rating - mu))
+```
+
+how much our prediction improves once using y=mu+b_u
+```{r user effect predicted ratings}
+predicted_ratings <- 
+  test_edx %>% 
+  left_join(fit_user_ave, by='userId') %>% 
+  mutate(predicted=mu+b_u) %>%
+  pull(predicted)
+```
+
+```{r plot b_u and predicted echo=FALSE}
+# plot the user spesific effect - these estimates very substantially
+# figure 8 # 
+user_b_u <- 
+  fit_user_ave %>%
+  ggplot(aes(b_u))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("")+
+  labs(x="b_u", y="number of users")
+
+# plot the user predicred rating
+# figure 9 # 
+user_predicted_ratings <-
+  test_edx %>% 
+  left_join(fit_user_ave, by='userId') %>% 
+  mutate(predicted=mu+b_u)%>% 
+  group_by(userId) %>% 
+  summarise(predicted=mean(predicted)) %>% 
+  ggplot(aes(predicted))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Rating score dist. by number of users")+ 
+  labs(x="Rating score", y="number of users")
+
+# display 2 plots together
+grid.arrange(user_rating_score,user_b_u, ncol=2)
+```
+
+#####
+#### model results
+```{r model results user effect}
+# model RMSE
+model_1_rmse <- RMSE(true_ratings=test_edx$rating,
+                     predicted_ratings=predicted_ratings)
+# model MSE
+model_1_mse <- MSE(test_edx$rating,predicted_ratings)
+
+#add the results to the table 
+model_1_results <- tibble(method = "User Effect",MSE=model_1_mse, RMSE = model_1_rmse)
+model_1_results 
+```
+
+plot the mse
+```{r plot the user mse, echo=FALSE}
+# figure 9 #
+test_edx %>% 
+  left_join(fit_user_ave, by='userId') %>% 
+  select(userId,rating,b_u, title) %>% 
+  mutate(predicted=b_u+mu,
+         se=((rating-predicted)^2)) %>%
+  group_by(userId) %>% 
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("User Effect model squared errors")+ 
+  labs(x="Mean squared errors", y="number of users")
+```
+
+
+
+
