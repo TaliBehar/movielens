@@ -111,7 +111,6 @@ users <- sample(unique(edx_year_sanitized$userId), 120)
 edx_year_sanitized %>% 
   filter(userId %in% users) %>% 
   select(userId, movieId, rating) %>%
-  mutate(rating = 1) %>%
   spread(movieId, rating) %>% 
   select(sample(ncol(.), 120)) %>% 
   as.matrix() %>% 
