@@ -721,7 +721,7 @@ data_frame(original = fit_movie_ave$b_i,
   ggplot(aes(original, regularlized, size=sqrt(n))) + 
   geom_point(shape=1, alpha=0.5) 
 ```
-
+### 10. movieId + userId
 ####  D. third model - modeling movie + user effect
 
 b_ui - average rating for movie i with user specific effect
