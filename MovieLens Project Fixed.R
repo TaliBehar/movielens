@@ -164,7 +164,7 @@ edx_year_sanitized %>%
 
 ### 6. create additional partition of training and test set 
 
-set.seed(167, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(167)`
+set.seed(755, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(755)`
 
 # randomly splitting edx data set into 80% training set and 20% testing set 
 test_index <- createDataPartition(y = edx_year_sanitized$rating, times = 1,
@@ -200,6 +200,7 @@ naive_mse <- MSE(test_edx$rating, mu_hat)
 
 #creating results table with naive approach
 naive_model_results <- tibble(method = "Average only",MSE=naive_mse, RMSE = naive_rmse)
+naive_model_results
 
 ### 8. userId 
 
@@ -398,6 +399,7 @@ qplot(lambdas,user_rmses)
 
 penalty_term <- lambdas[which.min(user_rmses)]
 penalty_lambda_rmse <- c(penalty_term,user_rmses[lambda=penalty_term])
+penalty_lambda_rmse
 
 # apply lambda on edx train+test
 
@@ -1113,9 +1115,121 @@ predicted_ratings <-
 model_5_rmse <- RMSE(true_ratings=test_edx$rating,
                      predicted_ratings=predicted_ratings)
 
-model_5_mse <- MSE(test_edx$rating,reg_predicted_ratings)
+model_5_mse <- MSE(test_edx$rating,predicted_ratings)
 
 #add the results to the table 
 model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
                           MSE=model_5_mse, RMSE = model_5_rmse)
 model_5_results
+
+### 13. Genres
+
+# separting train_edx rows for unique genres
+train_edx_genres <- train_edx %>%  separate_rows(genres, sep="\\|")
+test_edx_genres <- test_edx %>%  separate_rows(genres, sep="\\|")
+
+# figure 29 # 
+# Distribution of movie ratings for each gener
+train_edx_genres %>% 
+  group_by(genres) %>% 
+  filter(genres!="(no genres listed)") %>%
+  summarize(count = n(),ave_rating=mean(rating)) %>% 
+  arrange(desc(count)) %>%
+  mutate(percentage=100*count/sum(count)) %>% 
+  ggplot(aes(ave_rating,percentage))+
+  geom_point()+
+  geom_text(aes(label=genres), size=3,  hjust=0,vjust=0)+
+  ggtitle("Distribution of movies for each gener")+ 
+  labs(x="average rating score", y="percentage of the rating count")
+
+# filter genres with ave score over 3.4 stars and top 20 percent of total ratings
+train_edx_genres %>% 
+  group_by(genres) %>% 
+  filter(genres!="(no genres listed)") %>%
+  summarize(count_m = n()/1000000, #number of ratings in millions
+            ave_rating=mean(rating),
+            year=release_year[1]) %>% 
+  mutate(percentage=100*count_m/sum(count_m)) %>% 
+  filter(ave_rating>=3.4 & count_m>=quantile(count_m, 0.80)) %>% 
+  arrange(desc(percentage)) %>%   
+  select(genres,count_m,ave_rating, percentage) %>% 
+  knitr::kable()
+
+# graph geners over the years
+# figure 30 #
+genres_rating_over_years <- 
+  train_edx_genres %>% 
+  group_by(genres,release_year) %>% 
+  summarize(count_k=n()/1000,     #number of ratings in thousand
+            year=release_year[1]) %>%
+  filter(genres %in% c("Drama", "Comedy", "Action","Thriller"),
+         release_year>="1960") %>%
+  ggplot(aes(x =year, y = count_k)) +
+  geom_point(aes(color=genres))+
+  geom_smooth()
+
+# score over the years
+# figure 31 #
+genres_score_over_years <- 
+  train_edx_genres %>% 
+  group_by(genres,release_year) %>% 
+  summarize(ave=mean(rating),
+            year=release_year[1]) %>%
+  filter(genres %in% c("Drama", "Comedy", "Action", "Thriller"),
+         release_year>="1960") %>%
+  ggplot(aes(x =year, y = ave)) +
+  geom_point(aes(color=genres)) + 
+  geom_smooth()
+
+# plot 2 graphs - place multiple grobs on a page
+plot_grid(genres_rating_over_years,genres_score_over_years, ncol=1, align="v")
+
+#### G. Sisth model - Reg. Movie + User Effect + Time Effect + Genres Effect 
+
+fit_genres_ave <-  
+  train_edx_genres %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  group_by(genres) %>%
+  summarize(b_g=mean(rating-mu-reg_b_i-reg_b_ui-d_ui))
+
+predicted_ratings <- 
+  test_edx_genres %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  left_join(fit_genres_ave, by='genres') %>% 
+  mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui+b_g) %>%
+  pull(predicted)
+
+model_6_rmse <- RMSE(true_ratings=test_edx_genres$rating,
+                     predicted_ratings=predicted_ratings)
+
+model_6_mse <- MSE(test_edx_genres$rating,predicted_ratings)
+
+#add the results to the table 
+model_6_results <- 
+  tibble(method = "Reg. Movie + User Effect + Time Effect + Genres Effect",
+         MSE=model_6_mse, RMSE = model_6_rmse)
+model_6_results
+
+# plot the mse
+# figure 15 #
+test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  left_join(fit_genres_ave, by='genres') %>% 
+  mutate((predicted = mu+reg_b_i+reg_b_ui+d_ui+b_g),
+         se=((rating-predicted)^2)) %>% 
+  group_by(movieId) %>% 
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("7")+ 
+  labs(x="Mean squared errors", y="number of movies")
+
