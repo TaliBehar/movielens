@@ -619,9 +619,163 @@ model_2_1_results <- tibble(method = "Reg. Movie Effect",
 model_2_1_results
 
 #to see hoe the estimates shrink, plot the regularized estimates vs least squre estimates 
+# figure 16 #
 data_frame(original = fit_movie_ave$b_i, 
            regularlized = fit_reg_movie_ave$reg_b_i, 
            n = fit_reg_movie_ave$n_i) %>%
   ggplot(aes(original, regularlized, size=sqrt(n))) + 
   geom_point(shape=1, alpha=0.5) 
 
+
+####  D. third model - modeling movie + user effect
+
+# b_ui - average rating for movie i with user specific effect
+fit_user_movie_ave <- 
+  train_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>%
+  group_by(userId) %>%
+  summarize(b_ui = mean(rating - mu - b_i))
+
+# how much our prediction improves once using y=mu+bi+b_ui
+predicted_ratings <- 
+  test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>%
+  left_join(fit_user_movie_ave, by='userId') %>%
+  mutate(predicted = mu+b_i+b_ui) %>%
+  pull(predicted)
+
+model_3_rmse <- RMSE(true_ratings=test_edx$rating,
+                     predicted_ratings=predicted_ratings)
+
+rmse_results <- bind_rows(rmse_results,
+                          data_frame(method="Movie + User Effects Model",  
+                                     RMSE = model_3_rmse ))
+rmse_results %>% knitr::kable()
+
+## modeling movie + user effect - check + visualization ##
+# check if the predicted_rating is true
+check_predicted_m_u<- 
+  test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>%
+  left_join(fit_user_movie_ave, by="userId") %>%
+  select(movieId,userId,rating,b_i,b_ui,title) %>% 
+  mutate(predicted = mu+b_i+b_ui, 
+         residual=rating-predicted, 
+         abs_res=abs(residual))
+
+check_predicted_m_u %>% mutate(se=((rating-predicted)^2))%>%
+  summarize(mse=mean(se), rmse=sqrt(mse))
+
+RMSE(check_predicted_m_u$predicted, test_edx$rating)
+
+# graph the residuals + rmse line (extream erorr in red)
+user_movie_residual <- 
+  check_predicted_m_u %>% 
+  group_by(movieId) %>% 
+  mutate(se=((rating-predicted)^2))%>%
+  summarize(residual=residual[1],
+            mse=mean(se), 
+            rmse=sqrt(mse)) %>%
+  ggplot(aes(x=as.character(movieId),y=residual,
+             color=ifelse(residual>=(-3)& residual<=3,"blue", "red")))+
+  geom_point(alpha=0.1,show.legend = FALSE)+
+  geom_hline(aes(yintercept=0.8666408),color="blue", 
+             linetype="dashed", size=0.5)+
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+# graph the se + mse line (extream erorr in red) 
+user_movie_se <-
+  check_predicted_m_u %>% 
+  group_by(movieId) %>% 
+  mutate(se=((rating-predicted)^2))%>%
+  summarize(se=se[1],mse=mean(se)) %>%
+  ggplot(aes(x=as.character(movieId),y=se,
+             color=ifelse(se>=(10),"red", "blue"))) +
+  geom_point(alpha=0.1,show.legend = FALSE)+
+  geom_hline(aes(yintercept=0.7510663),color="blue", 
+             linetype="dashed", size=0.5)+
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+# 2 plots together
+grid.arrange(user_movie_residual,user_movie_se, ncol=2)
+
+# list of our biggest "mistakes"(the reason for small improve in RMSE)
+check_predicted_m_u %>%
+  mutate(se=((rating-predicted)^2))%>%
+  arrange(desc(se)) %>% select(title,se)%>% 
+  distinct() %>%slice(1:10) %>%pull(title)
+
+
+# reg user effect + movie effect 
+
+lambdas <- seq(0,10,0.25)
+
+equation_mu <- mean(train_edx_cv$rating)
+
+movie_user_rmses <- 
+  sapply(lambdas,function(lambda){
+    fit_reg_movie_ave <- 
+      train_edx_cv %>% 
+      group_by(movieId) %>%
+      summarize(n_i=n(),
+                s= sum(rating - equation_mu),
+                reg_b_i=(s/(n_i+lambda)))
+    
+    fit_reg_user_movie_ave <- 
+      train_edx_cv %>%
+      left_join(fit_reg_movie_ave, by='movieId') %>%
+      group_by(userId) %>%
+      summarize(n_i=n(), 
+                s= sum(rating -reg_b_i -equation_mu), 
+                reg_b_ui=(s/(n_i+lambda)))
+    
+    reg_predicted_ratings <- 
+      test_edx_cv %>% 
+      left_join(fit_reg_movie_ave, by='movieId') %>%   
+      left_join(fit_reg_user_movie_ave, by='userId') %>%
+      mutate(predicted = equation_mu+reg_b_i+reg_b_ui) %>%
+      pull(predicted)
+    
+    return(RMSE(true_ratings=test_edx_cv$rating,
+                predicted_ratings=reg_predicted_ratings))
+    
+  })
+
+qplot(lambdas,movie_user_rmses)
+
+penalty_term <- lambdas[which.min(movie_user_rmses)]
+
+penalty_lambda_rmse <- c(penalty_term,movie_user_rmses[lambda=penalty_term])
+penalty_lambda_rmse
+
+# apply lambda on edx train+test
+
+fit_reg_movie_ave <- 
+  train_edx %>%
+  group_by(movieId) %>%
+  summarize(n_i=n(), 
+            s= sum(rating - mu),
+            reg_b_i=(s/(n_i+penalty_term)))
+
+fit_reg_user_movie_ave <- 
+  train_edx %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  group_by(userId) %>% 
+  summarize(n_i=n(),
+            s= sum(rating -reg_b_i -mu), 
+            reg_b_ui=(s/(n_i+penalty_term)))
+
+predicted_ratings <- 
+  test_edx %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  mutate(predicted = mu+reg_b_i+reg_b_ui) %>%
+  pull(predicted)
+
+model_3_1_rmse <- RMSE(true_ratings=test_edx$rating,
+                       predicted_ratings=predicted_ratings)
+
+rmse_results <- bind_rows(rmse_results,
+                          data_frame(method="Reg. Movie + User Effects Model",  
+                                     RMSE = model_3_1_rmse ))
+rmse_results %>% knitr::kable()
