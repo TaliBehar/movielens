@@ -755,7 +755,7 @@ data_frame(original = fit_user_movie_ave$b_ui,
   ggplot(aes(original, regularlized, size=sqrt(n))) + 
   geom_point(shape=1, alpha=0.5) 
 
-### 10. Age of the movie at rating
+### 11. Age of the movie at rating
 #### how old was the movie during rating
 
 # figure 19 # 
@@ -795,7 +795,8 @@ ave_scoring_by_age <-
 plot_grid(ave_scoring_by_age, scoring_by_age, ncol=1, align="v") # TO DO- share legends 
 
 # 1984 release year example (filter movies with less than 1000 ratings)
-age_ex._1984 <- edx_year_sanitized %>% 
+age_ex._1984 <- 
+  train_edx %>% 
   group_by(title, rate_year) %>%
   summarize(count=n(),Ave_rating_score = mean(rating),
             rate_year=rate_year[1],
