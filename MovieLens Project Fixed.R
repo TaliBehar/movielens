@@ -1091,3 +1091,31 @@ score_by_week <-
 # plot 2 graphs - place multiple grobs on a page
 grid.arrange(rating_count_per_rate_year,score_by_week, ncol=2)
 
+#### F. Fifth model Reg. Movie + User Effect + Time effect 
+ 
+fit_time_ave <-  
+  train_edx %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  group_by(week) %>%
+  summarize(d_ui=mean(rating-mu-reg_b_i-reg_b_ui))
+
+predicted_ratings <- 
+  test_edx %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui) %>%
+  pull(predicted)
+
+model_5_rmse <- RMSE(true_ratings=test_edx$rating,
+                     predicted_ratings=predicted_ratings)
+
+model_5_mse <- MSE(test_edx$rating,reg_predicted_ratings)
+
+#add the results to the table 
+model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
+                          MSE=model_5_mse, RMSE = model_5_rmse)
+model_5_results
