@@ -327,6 +327,7 @@ model_1_mse <- MSE(test_edx$rating,predicted_ratings)
 
 #add the results to the table 
 model_1_results <- tibble(method = "User Effect",MSE=model_1_mse, RMSE = model_1_rmse)
+model_1_results
 
 # plot the mse
 # figure 9 #
@@ -545,4 +546,82 @@ model_2_mse <- MSE(test_edx$rating,predicted_ratings)
 model_2_results <- tibble(method = "Movie Effect",
                           MSE=model_2_mse, RMSE = model_2_rmse)
 model_2_results
+
+# plot the mse
+# figure 15 #
+test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>% 
+  select(movieId,rating,b_i, title) %>% 
+  mutate(predicted=b_i+mu,
+         se=((rating-predicted)^2)) %>%
+  group_by(movieId) %>% 
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("User Effect model squared errors")+ 
+  labs(x="Mean squared errors", y="number of movies")
+
+#### Regularization #
+# choosing penalty term (lambda) for movie effect
+equation_mu <- mean(train_edx_cv$rating)
+
+equation_sum_m <- 
+  train_edx_cv %>%
+  group_by(movieId) %>%
+  summarize(n_i=n(), 
+            s=sum(rating-equation_mu))
+
+lambdas <- seq(0,6,0.05)
+
+movie_rmses <- 
+  sapply(lambdas,function(lambda){
+    reg_predicted_ratings <- 
+      test_edx_cv %>%
+      left_join(equation_sum_m, by="movieId") %>%
+      mutate(reg_b_i=(s/(n_i+lambda)),
+             predicted=(equation_mu+reg_b_i)) %>%
+      pull(predicted)
+    return(RMSE(true_ratings=test_edx_cv$rating,
+                predicted_ratings=reg_predicted_ratings))
+  })
+
+qplot(lambdas,movie_rmses)
+
+penalty_term <- lambdas[which.min(movie_rmses)]
+
+penalty_lambda_rmse <- c(penalty_term,movie_rmses[lambda=penalty_term])
+penalty_lambda_rmse
+
+# apply lambda on edx train+test
+
+fit_reg_movie_ave <- 
+  train_edx %>% 
+  group_by(movieId) %>% 
+  summarize(n_i=n(), 
+            reg_b_i=(sum(rating - mu)/(n_i+penalty_term)))
+
+#how much our prediction improves once using y=mu+bi
+reg_predicted_ratings <- 
+  test_edx %>% 
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  mutate(predicted=mu+reg_b_i) %>%
+  pull(predicted)
+
+model_2_1_rmse <- RMSE(true_ratings=test_edx$rating,
+                       predicted_ratings=reg_predicted_ratings)
+
+model_2_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
+
+#add the results to the table 
+model_2_1_results <- tibble(method = "Reg. Movie Effect",
+                            MSE=model_2_1_mse, RMSE = model_2_1_rmse)
+model_2_1_results
+
+#to see hoe the estimates shrink, plot the regularized estimates vs least squre estimates 
+data_frame(original = fit_movie_ave$b_i, 
+           regularlized = fit_reg_movie_ave$reg_b_i, 
+           n = fit_reg_movie_ave$n_i) %>%
+  ggplot(aes(original, regularlized, size=sqrt(n))) + 
+  geom_point(shape=1, alpha=0.5) 
 
