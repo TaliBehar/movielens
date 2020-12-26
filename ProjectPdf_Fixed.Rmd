@@ -490,5 +490,70 @@ model_1_1_results <- tibble(method = "Reg. User Effect",
 model_1_1_results
 ```
 
+### 9. movieId
+
+#### Movie Rating
+
+In average, each one of the 10.6k different movies get rated _ times.
+the movies most frequently gets only _ ratings, but there are exeptional like "Pulp Fiction" 
+that got rated _ more than average with _ users ratings.
+the distribution is positively skewed, like the user activity dist. (describe Weibull or Gamma dist??) as the mean is larger than the mode and median.
+
+Movie ratings- mean, median, mode, min, max  
+```{r movie summarize, echo=FALSE}
+train_edx %>% 
+  group_by(movieId) %>%
+  summarize(count=n()) %>% 
+  summarize(mean=round(mean(count)), 
+            median=median(count), 
+            mode=Mode(count,na.rm=FALSE), 
+            min=min(count), max=max(count)) %>%
+  knitr::kable()
+```
+
+```{r number of rating dist vs movie, echo=FALSE}
+# figure 10 # 
+# graph number of rating dist. by number of movies 
+movie_hist <- 
+  train_edx %>% 
+  group_by(movieId) %>%
+  summarize(count=n()) %>%
+  ggplot(aes(count)) +
+  geom_histogram(bins = 30, color = "gray20")+ 
+  geom_vline(aes(xintercept=median(count),color="median"), 
+                 linetype="dashed", size=0.5)+
+  geom_vline(aes(xintercept=Mode(count, na.rm = FALSE),color="Mode"),
+                 linetype="dashed", size=0.5)+
+  geom_vline(aes(xintercept=mean(count),color="mean"), 
+                 linetype="dashed", size=0.5)+
+  scale_color_manual(name = "Statistics", 
+                     values = c(median = "skyblue1", mean = "pink1",Mode="blue"))+
+  scale_x_log10()+
+  ggtitle("movieId Distribution")+ 
+  labs(x="Number Of Ratings Count", y="Number of Movies") 
+
+#graph number of ratings per movie, see extreme observation
+# figure 11 # 
+rate_p_m<- 
+  train_edx %>% 
+  group_by(title) %>%
+  summarize(count=n()) %>%
+  ggplot(aes(title,count)) +
+  geom_point(alpha=0.1)+
+  geom_hline(aes(yintercept=mean(count)),color="pink1", 
+                 linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=Mode(count, na.rm = FALSE)),
+                 color="blue", linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=median(count)),color="skyblue1", 
+                 linetype="dashed", size=0.5)+
+  ggtitle("Total Number Of Ratings Per Movie")+ 
+  labs(x="10,677 Unique Movies", y="Total Ratings Per Movie") + 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+
+# plot 2 graphs - place multiple grobs on a page
+grid.arrange(rate_p_m, movie_hist, ncol=2)
+```
+
+
 
 
