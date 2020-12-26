@@ -214,7 +214,6 @@ naive_model_results <- tibble(method = "Average only",MSE=naive_mse, RMSE = naiv
 #some users are more active than others at rating movies
 
 # Users Ratings - mean, median, mode, min, max 
-# figure 4 # 
 train_edx %>%  
   group_by(userId) %>% 
   summarize(count=n()) %>% 
@@ -225,7 +224,7 @@ train_edx %>%
   knitr::kable()
 
 # graph number of rating dist. by number of users 
-# figure 5 # 
+# figure 4 # 
 user_hist <- 
   train_edx %>% 
   group_by(userId) %>%
@@ -245,7 +244,7 @@ user_hist <-
   labs(x="Number of Ratings Count", y="Number of Users") 
 
 # graph number of ratings per user, see extreme observation  
-# figure 6 # 
+# figure 5 # 
 rate_p_u<- 
   train_edx %>% 
   group_by(userId) %>%
@@ -269,7 +268,7 @@ grid.arrange(rate_p_u, user_hist, ncol=2)
 mu <- mean(train_edx$rating)
 
 # plot user rating dist.
-# figure 7 # 
+# figure 6 # 
 train_edx %>% 
   group_by(userId) %>% 
   summarise(rating_score=mean(rating)) %>% 
@@ -293,7 +292,7 @@ predicted_ratings <-
   pull(predicted)
 
 # plot the user spesific effect - these estimates very substantially
-# figure 8 # 
+# figure 7 # 
 user_b_u <- 
   fit_user_ave %>%
   ggplot(aes(b_u))+
@@ -303,7 +302,7 @@ user_b_u <-
   labs(x="b_u", y="number of users")
 
 # plot the user predicred rating
-# figure 9 # 
+# figure 8 # 
 user_predicted_ratings <-
   test_edx %>% 
   left_join(fit_user_ave, by='userId') %>% 
@@ -330,6 +329,7 @@ model_1_mse <- MSE(test_edx$rating,predicted_ratings)
 model_1_results <- tibble(method = "User Effect",MSE=model_1_mse, RMSE = model_1_rmse)
 
 # plot the mse
+# figure 9 #
 test_edx %>% 
   left_join(fit_user_ave, by='userId') %>% 
   select(userId,rating,b_u, title) %>% 
