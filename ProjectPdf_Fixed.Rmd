@@ -756,6 +756,7 @@ model_3_results <- tibble(method = "Movie + User Effect",
 model_3_results
 ```
 # plot the mse
+```{r plot movie and user mse, echo=FALSE}
 # figure 17 #
 test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>%
@@ -770,10 +771,10 @@ test_edx %>%
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
   ggtitle("Movie + User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of movies")
-
+```
 #### Regularization #
 
-choosing penalty terms #
+choosing penalty terms 
 ```{r model 3.1 penalty term}
 lambdas <- seq(0,10,0.25)
 
