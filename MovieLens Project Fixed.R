@@ -704,6 +704,7 @@ movie_user_rmses <-
     
     return(RMSE(true_ratings=test_edx_cv$rating,
                 predicted_ratings=reg_predicted_ratings))
+    
   })
 
 qplot(lambdas,movie_user_rmses)
@@ -932,6 +933,7 @@ user_age_rmses <-
     
     return(RMSE(true_ratings=test_edx_cv$rating,
                 predicted_ratings=reg_predicted_ratings))
+    
   })
 
 qplot(lambdas,movie_user_rmses)
@@ -980,4 +982,112 @@ model_4_results <- tibble(method = "Reg. User + Age of the movie at rating Effec
                             MSE=model_4_mse, RMSE = model_4_rmse)
 model_4_results
 
+
+### 12. Time Frame Ranges
+
+# movie release streched over 93 years, while they first started to be rated after 80 years 
+
+tibble(Year = c("Release", "rate"),
+       First = c(min(train_edx$release_year),min(train_edx$rate_year)), 
+       Last = c(max(train_edx$release_year),max(train_edx$rate_year)),
+       "Range in years" = Last-First) %>% 
+  knitr::kable()
+
+### Release year
+
+# number of ratings for each movie against the year the movie came out; 
+# about _K movies that releasd in 1995 got the higest rating count
+# movies that released between 1992-1999 shows above average rating count while starting in 1993 the number of the movies being rated decreases with year
+# The more recent movie is, the less time users have had to rate it (change the sentance- took it from notebook)
+
+# graph number of rating per movie over time
+# figure 24 #
+train_edx %>% 
+  group_by(movieId) %>% 
+  summarize(count = n(), 
+            year = as.character(first(release_year))) %>% 
+  ggplot(aes(year, count))+
+  geom_boxplot(aes(group = cut_width(year, 0.2)), outlier.alpha = 0.1)+
+  geom_hline(aes(yintercept=mean(count)),color="red", linetype="dashed", size=0.5)+ 
+  coord_trans(y = "sqrt") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = rel(0.7)))+
+  ggtitle("number of rating for each movie per release year")+ 
+  labs(x="Movie Release Year", y="number of ratings per movie") 
+
+# figure 25 # 
+# graph average rating score for each release_year   
+train_edx %>% 
+  group_by(release_year) %>%
+  summarize(k_count=n()/1000,      # count in thousands
+            rating_score = mean(rating)) %>%
+  ggplot(aes(release_year, rating_score)) +
+  geom_point(aes(color=k_count)) + 
+  scale_color_gradient2(high = 'black', mid ='gray' ,low = 'white' )+
+  geom_smooth()+
+  geom_hline(aes(yintercept=mean(edx_year_sanitized$rating)),
+             color="red", linetype="dashed", size=0.5)+
+  ggtitle("Average Rating Per year")+ 
+  labs(x="Release Year", y="Average Rating Score") 
+
+# figure 26 # 
+# post-1993 movies ratings per year and their average ratings
+train_edx %>% 
+  filter(release_year >= 1993) %>%
+  group_by(movieId) %>%
+  summarize(count = n(), years = 2018 - first(release_year),
+            title = title[1],
+            ave_rating = mean(rating)) %>%
+  mutate(rating_per_year = count/years) %>%
+  ggplot(aes(rating_per_year, ave_rating)) +
+  geom_point() +
+  geom_smooth()+
+  ggtitle("post-1993 movies ratings per year and their average ratings")+ 
+  labs(x="Rating Per Year", y="Average Rating Score") 
+
+# The top 15 movies with the most ratings per year, along with their average ratings
+# (represent the upper right part of the figure 7 graph)
+train_edx %>% 
+  filter(release_year >= 1993) %>%
+  group_by(movieId) %>%
+  summarize(title = title[1], Total_ratings_count = n(), years = 2018 - first(release_year),
+            ave_rating = mean(rating)) %>%
+  mutate(rating_per_year = Total_ratings_count/years) %>%
+  top_n(10, rating_per_year) %>% select(-movieId) %>%
+  arrange(desc(rating_per_year, years)) %>%
+  knitr::kable()
+
+### Rate year
+
+# There is some evidence of a time effect on average rating.
+
+# figure 27 # 
+# graph Number of movies per each rate year  
+rating_count_per_rate_year <- 
+  train_edx %>% 
+  group_by(movieId) %>%
+  summarize(count = n(), 
+            rate_year = as.character(first(rate_year))) %>%
+  qplot(rate_year, count, data = ., geom = "boxplot") +
+  coord_trans(y = "sqrt") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  geom_hline(aes(yintercept=mean(count)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("number of movies Per rate year")+ 
+  labs(x="Rate Year", y="Movies count") 
+
+# figure 28 # 
+# graph average rating for each week 
+score_by_week <- 
+  train_edx %>% 
+  mutate(week_of_rate = round_date(rate_date, unit = "week")) %>%
+  group_by(week_of_rate) %>%
+  summarize(rating_score = mean(rating)) %>%
+  ggplot(aes(week_of_rate, rating_score)) +
+  geom_point() +
+  geom_smooth()+
+  geom_hline(aes(yintercept=mean(rating_score)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Average Rating Per Week")+ 
+  labs(x="Week of rate", y="Average Rating Score") 
+
+# plot 2 graphs - place multiple grobs on a page
+grid.arrange(rating_count_per_rate_year,score_by_week, ncol=2)
 
