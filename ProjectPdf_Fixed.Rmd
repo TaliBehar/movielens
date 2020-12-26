@@ -196,7 +196,7 @@ edx_year_sanitized %>%
 
 ### 6. create additional partition of training and test set 
 ```{r additional partition}
-set.seed(167, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(167)`
+set.seed(755, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(755)`
 
 # randomly splitting edx data set into 80% training set and 20% testing set 
 test_index <- createDataPartition(y = edx_year_sanitized$rating, times = 1,
@@ -1272,4 +1272,5 @@ model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
                           MSE=model_5_mse, RMSE = model_5_rmse)
 model_5_results
 ```
+### 13. 
 
