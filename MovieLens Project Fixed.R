@@ -643,69 +643,36 @@ predicted_ratings <-
   mutate(predicted = mu+b_i+b_ui) %>%
   pull(predicted)
 
+# model RMSE
 model_3_rmse <- RMSE(true_ratings=test_edx$rating,
                      predicted_ratings=predicted_ratings)
+# model MSE
+model_3_mse <- MSE(test_edx$rating,predicted_ratings)
 
-rmse_results <- bind_rows(rmse_results,
-                          data_frame(method="Movie + User Effects Model",  
-                                     RMSE = model_3_rmse ))
-rmse_results %>% knitr::kable()
+#add the results to the table 
+model_3_results <- tibble(method = "Movie + User Effect",
+                          MSE=model_3_mse, RMSE = model_3_rmse)
+model_3_results
 
-## modeling movie + user effect - check + visualization ##
-# check if the predicted_rating is true
-check_predicted_m_u<- 
-  test_edx %>% 
+# plot the mse
+# figure 17 #
+test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>%
   left_join(fit_user_movie_ave, by="userId") %>%
   select(movieId,userId,rating,b_i,b_ui,title) %>% 
-  mutate(predicted = mu+b_i+b_ui, 
-         residual=rating-predicted, 
-         abs_res=abs(residual))
-
-check_predicted_m_u %>% mutate(se=((rating-predicted)^2))%>%
-  summarize(mse=mean(se), rmse=sqrt(mse))
-
-RMSE(check_predicted_m_u$predicted, test_edx$rating)
-
-# graph the residuals + rmse line (extream erorr in red)
-user_movie_residual <- 
-  check_predicted_m_u %>% 
+  mutate(predicted=mu+b_i+b_ui,
+         se=((rating-predicted)^2)) %>%
   group_by(movieId) %>% 
-  mutate(se=((rating-predicted)^2))%>%
-  summarize(residual=residual[1],
-            mse=mean(se), 
-            rmse=sqrt(mse)) %>%
-  ggplot(aes(x=as.character(movieId),y=residual,
-             color=ifelse(residual>=(-3)& residual<=3,"blue", "red")))+
-  geom_point(alpha=0.1,show.legend = FALSE)+
-  geom_hline(aes(yintercept=0.8666408),color="blue", 
-             linetype="dashed", size=0.5)+
-  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Movie + User Effect model squared errors")+ 
+  labs(x="Mean squared errors", y="number of movies")
 
-# graph the se + mse line (extream erorr in red) 
-user_movie_se <-
-  check_predicted_m_u %>% 
-  group_by(movieId) %>% 
-  mutate(se=((rating-predicted)^2))%>%
-  summarize(se=se[1],mse=mean(se)) %>%
-  ggplot(aes(x=as.character(movieId),y=se,
-             color=ifelse(se>=(10),"red", "blue"))) +
-  geom_point(alpha=0.1,show.legend = FALSE)+
-  geom_hline(aes(yintercept=0.7510663),color="blue", 
-             linetype="dashed", size=0.5)+
-  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+#### Regularization #
 
-# 2 plots together
-grid.arrange(user_movie_residual,user_movie_se, ncol=2)
-
-# list of our biggest "mistakes"(the reason for small improve in RMSE)
-check_predicted_m_u %>%
-  mutate(se=((rating-predicted)^2))%>%
-  arrange(desc(se)) %>% select(title,se)%>% 
-  distinct() %>%slice(1:10) %>%pull(title)
-
-
-# reg user effect + movie effect 
+# choosing penalty terms #
 
 lambdas <- seq(0,10,0.25)
 
@@ -743,7 +710,6 @@ movie_user_rmses <-
 qplot(lambdas,movie_user_rmses)
 
 penalty_term <- lambdas[which.min(movie_user_rmses)]
-
 penalty_lambda_rmse <- c(penalty_term,movie_user_rmses[lambda=penalty_term])
 penalty_lambda_rmse
 
@@ -774,7 +740,17 @@ predicted_ratings <-
 model_3_1_rmse <- RMSE(true_ratings=test_edx$rating,
                        predicted_ratings=predicted_ratings)
 
-rmse_results <- bind_rows(rmse_results,
-                          data_frame(method="Reg. Movie + User Effects Model",  
-                                     RMSE = model_3_1_rmse ))
-rmse_results %>% knitr::kable()
+model_3_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
+
+#add the results to the table 
+model_3_1_results <- tibble(method = "Reg. Movie + User Effect",
+                            MSE=model_3_1_mse, RMSE = model_3_1_rmse)
+model_3_1_results
+
+#to see hoe the estimates shrink, plot the regularized estimates vs least squre estimates 
+# figure 16 #
+data_frame(original = fit_user_movie_ave$b_ui, 
+           regularlized = fit_reg_user_movie_ave$reg_b_ui,
+          n=fit_reg_user_movie_ave$n_i) %>%
+  ggplot(aes(original, regularlized, size=sqrt(n))) + 
+  geom_point(shape=1, alpha=0.5) 
