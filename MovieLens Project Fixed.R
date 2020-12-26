@@ -443,8 +443,9 @@ train_edx %>%
             min=min(count), max=max(count)) %>%
   knitr::kable()
 
-# figure 10 # 
+
 # graph number of rating dist. by number of movies 
+# figure 10 # 
 movie_hist <- 
   train_edx %>% 
   group_by(movieId) %>%
@@ -460,6 +461,7 @@ movie_hist <-
   labs(x="Number Of Ratings Count", y="Number of Movies") 
 
 #graph number of ratings per movie, see extreme observation
+# figure 11 #
 rate_p_m<- 
   train_edx %>% 
   group_by(title) %>%
@@ -476,6 +478,71 @@ rate_p_m<-
 # plot 2 graphs - place multiple grobs on a page
 grid.arrange(rate_p_m, movie_hist, ncol=2)
 
+####  c. second model - modeling movie effect
+
+# We know from experience that some movies are just generally rated higher than others. This
+# intuition, that different movies are rated differently, is confirmed by data
 
 
+# plot movie rating dist.
+# figure 12 # 
+train_edx %>% 
+  group_by(movieId) %>% 
+  summarise(rating_score=mean(rating)) %>% 
+  ggplot(aes(rating_score))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Rating score dist. by number of movies")+ 
+  labs(x="Rating score", y="number of movies")
+
+# b_i - average rating for movie i regardless of user
+fit_movie_ave <- 
+  train_edx %>% 
+  group_by(movieId) %>% 
+  summarize(b_i = mean(rating - mu))
+
+#how much our prediction improves once using y=mu+bi
+predicted_ratings <- 
+  test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>%
+  mutate(predicted = mu + b_i) %>% 
+  pull(predicted)
+
+# plot the movie spesific effect - these estimates very substantially
+# figure 13 # 
+movie_b_i <-
+  fit_movie_ave %>%
+  ggplot(aes(b_i))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("")+
+  labs(x="b_i", y="number of movies")
+
+# plot the movie predicted rating
+# figure 14 # 
+movie_predicted_ratings <-
+  test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>% 
+  mutate(predicted=mu+b_i)%>% 
+  group_by(movieId) %>% 
+  summarise(predicted=mean(predicted)) %>% 
+  ggplot(aes(predicted))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
+  ggtitle("Rating score dist. by number of movies")+ 
+  labs(x="predicted Rating score", y="number of movies")
+
+# plot 2 graphs together
+grid.arrange(movie_b_i ,movie_predicted_ratings, ncol=2)
+
+# model RMSE
+model_2_rmse <- RMSE(true_ratings=test_edx$rating,
+                     predicted_ratings=predicted_ratings)
+# model MSE
+model_2_mse <- MSE(test_edx$rating,predicted_ratings)
+
+#add the results to the table 
+model_2_results <- tibble(method = "Movie Effect",
+                          MSE=model_2_mse, RMSE = model_2_rmse)
+model_2_results
 
