@@ -704,7 +704,6 @@ movie_user_rmses <-
     
     return(RMSE(true_ratings=test_edx_cv$rating,
                 predicted_ratings=reg_predicted_ratings))
-    
   })
 
 qplot(lambdas,movie_user_rmses)
@@ -889,4 +888,96 @@ train_edx %>%
   scale_color_gradient2(low = 'white', mid ='blue' , high = 'red')+
   ggtitle("Classical Hollywood cinema movies 1915-1960")+ 
   labs(x="Age of a movie at rating", y="average rating score") 
+
+#### E. forth model Reg. User + Age of the movie at rating Effect
+
+# the model will group the age of the movie at rating regardles it title
+# each movie rated several times over the years. 
+
+# choosing penalty terms #
+ 
+lambdas <- seq(0,10,0.25)
+
+equation_mu <- mean(train_edx_cv$rating)
+
+user_age_rmses <- 
+  sapply(lambdas,function(lambda){
+    fit_reg_user_ave <- 
+      train_edx_cv %>% 
+      mutate(age_at_rating= abs(rate_year-release_year)) %>%
+      filter(age_at_rating>=0)%>%
+      group_by(userId) %>%
+      summarize(n_i=n(),
+                s= sum(rating - equation_mu),
+                reg_b_u=(s/(n_i+lambda)))
+    
+    fit_reg_user_age_ave <- 
+      train_edx_cv %>%
+      mutate(age_at_rating= abs(rate_year-release_year)) %>%
+      filter(age_at_rating>=0)%>%
+      left_join(fit_reg_user_ave, by='userId') %>%
+      group_by(age_at_rating) %>%
+      summarize(n_i=n(), 
+                s= sum(rating -reg_b_u -equation_mu), 
+                reg_b_ua=(s/(n_i+lambda)))
+    
+    reg_predicted_ratings <- 
+      test_edx_cv %>% 
+      mutate(age_at_rating= abs(rate_year-release_year)) %>%
+      filter(age_at_rating>=0)%>%
+      left_join(fit_reg_user_ave, by='userId') %>%   
+      left_join(fit_reg_user_age_ave, by='age_at_rating') %>%
+      mutate(predicted = equation_mu+reg_b_u+reg_b_ua) %>%
+      pull(predicted)
+    
+    return(RMSE(true_ratings=test_edx_cv$rating,
+                predicted_ratings=reg_predicted_ratings))
+  })
+
+qplot(lambdas,movie_user_rmses)
+
+penalty_term <- lambdas[which.min(user_age_rmses)]
+penalty_lambda_rmse <- c(penalty_term,user_age_rmses[lambda=penalty_term])
+penalty_lambda_rmse
+
+# apply lambda on edx train+test
+
+fit_reg_user_ave <- 
+  train_edx %>%
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  group_by(userId) %>%
+  summarize(n_i=n(), 
+            s= sum(rating - mu),
+            reg_b_u=(s/(n_i+penalty_term)))
+
+fit_reg_user_age_ave <- 
+  train_edx %>%
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  left_join(fit_reg_user_ave, by='userId') %>%
+  group_by(age_at_rating) %>% 
+  summarize(n_i=n(),
+            s= sum(rating -reg_b_u -mu), 
+            reg_b_ua=(s/(n_i+penalty_term)))
+
+predicted_ratings <- 
+  test_edx %>%
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  left_join(fit_reg_user_ave, by='userId') %>%
+  left_join(fit_reg_user_age_ave, by='age_at_rating') %>%
+  mutate(predicted = mu+reg_b_u+reg_b_ua) %>%
+  pull(predicted)
+
+model_4_rmse <- RMSE(true_ratings=test_edx$rating,
+                     predicted_ratings=predicted_ratings)
+
+model_4_mse <- MSE(test_edx$rating,reg_predicted_ratings)
+
+#add the results to the table 
+model_4_results <- tibble(method = "Reg. User + Age of the movie at rating Effect",
+                            MSE=model_4_mse, RMSE = model_4_rmse)
+model_4_results
+
 
