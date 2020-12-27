@@ -102,8 +102,10 @@ glimpse(edx_year_sanitized)
 edx_year_sanitized %>% 
   summarize("Number of users" = n_distinct(userId),
             "Number of movies" = n_distinct(movieId), 
-            "Number of ratings" = nrow(edx)) %>%
-  comma(,digits = 0)
+            "Number of ratings (M)" = nrow(edx)/1000000,
+            "Number of 'missing' ratings (M)"=
+              ((n_distinct(userId)*n_distinct(movieId))-nrow(edx))/1000000) %>%
+  knitr::kable()
 
 #the following matrix contain random sample of 120 movies and 120 users TO DO 
 # figure 1 # 
@@ -268,7 +270,8 @@ grid.arrange(rate_p_u, user_hist, ncol=2)
 mu <- mean(train_edx$rating)
 
 # plot user rating dist.
-# figure 6 # 
+# figure 6 #
+
 train_edx %>% 
   group_by(userId) %>% 
   summarise(rating_score=mean(rating)) %>% 
@@ -277,6 +280,8 @@ train_edx %>%
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
   ggtitle("Rating score dist. by number of users")+ 
   labs(x="Rating score", y="number of users")
+
+summary(train_edx$rating)[c("1st Qu.","3rd Qu.")]
 
 # b_u - average rating by user u regardless of movie
 fit_user_ave <- 
@@ -1274,5 +1279,18 @@ model_final_results <-
          MSE=model_final_mse, RMSE = model_final_rmse)
 model_final_results
 
+### Models results table
+rbind(naive_model_results,
+      model_1_results, 
+      model_1_1_results,
+      model_2_results, 
+      model_2_1_results,
+      model_3_results, 
+      model_3_1_results,
+      model_4_results, 
+      model_5_results,
+      model_6_results, 
+      model_final_results) %>%
+  arrange(MSE)
 
 
