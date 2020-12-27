@@ -91,17 +91,29 @@ load("D:/OneDrive/Documents/Tali/Tali data science studies/movielens_dataset/mov
 ```
 
 #### Get A Glimpse Of Edx Data 
-each row provides a given rating to one movie by specific user
 ```{r glimpse Of edx, echo=FALSE}
 glimpse(edx)
 ```
+'edx' data set contains 6 columns; 
 
-### 4. sanitizing the data - timestamp column
-edx data set contains a timestamp column.This date-time is a point on the timeline, stored as the number
-of seconds since 1970-01-01 00:00:00 UTC. 
-convert timestamp into rate date, add rate year column, extract the release year from the movie title, 
-delete release year from movie title
+1. userId - Unique ID for the user
 
+2. movieId - Unique ID for the movie
+
+3. rating - A rating between 0.5 and 5 for the movie
+
+4. timestamp - Date and time the rating was given
+
+5. title - Movie title and year the movie was released.
+
+6. genres - Genres associated with the movie
+
+And 9 million rows. Each row provides a given rating to one movie by specific user. 
+
+### 4. Sanitizing the data - timestamp column
+The date-time in the 'edx' timestamp column is a point on the timeline, stored as the number of seconds since 1970-01-01 00:00:00 UTC.
+
+In order to be able to use the time information and for better convenience, I converted the timestamp into rate date, added rate year column, extracted the release year from the movie title and deleted the release year from movie title
 ```{r sanitizing the data, echo=TRUE}
 #edx_year_sanitized <- edx %>% 
 #  mutate(rate_year = year(as_datetime(timestamp)),
@@ -116,21 +128,24 @@ Get a glimpse of the sanitized data
 glimpse(edx_year_sanitized)
 ```
 
-### 5. Edx Dataset Overview
-
-edx data set contains _ different users and _ different movies.
-Hoever, we only gets about 9 million rated movies insted of 746 million. that's because each user rated selected movies by his personal preference. By building well fitted model, we could fill-in these "holes" ....
-
-### summarized counted data
-```{r summarized counted data, echo=FALSE}
+### 5. The Dataset Overview
+```{r summarized edx_year_sanitized data, echo=FALSE}
 edx_year_sanitized %>% 
   summarize("Number of users" = n_distinct(userId),
             "Number of movies" = n_distinct(movieId), 
-            "Number of ratings" = nrow(edx)) %>%
-  comma(,digits = 0)
+            "Number of ratings (M)" = nrow(edx)/1000000,
+            "Number of 'missing' ratings (M)"=
+              ((n_distinct(userId)*n_distinct(movieId))-nrow(edx))/1000000) %>%
+  knitr::kable()
 ```
+'edx_year_sanitized' contains about 70k different users that provided ratings and about 11k different rated movies.
 
-the following matrix contain random sample of 120 movies and 120 users
+The following matrix contain random sample of 120 movies and 120 users. 
+
+If we were to look at the entire matrix, the empty cells (about 737 million cells in the data set overall), represent the unrated movies by all users. 
+Users rated only the selected movies by their personal preferences, therefore we have "only" 9 million ratings. 
+
+Each of the colored cells represent one rating and the color varies according to its score. 
 ```{r preview matrix, echo=FALSE}
 # figure 1 # 
 users <- sample(unique(edx_year_sanitized$userId), 120)
@@ -146,10 +161,7 @@ abline(h=0:120+0.5, v=0:120+0.5, col = "whitesmoke")
 title("User / Movie Rating Combination")
 ```
 
-### Rating Score
-The users average rate score is _ stars while Both median and Mode rate score is the 4 stars (distribution is negatively skewed) About _ milion ratings, which is percent of the total ratings, are _ stars and only _ percent of the ratings is 3 stars and less.
-In general, whole star ratings are more common than half star ratings, and are 79.5 percent of the total ratings
-
+### Evaluate the movie - Rating Score
 ```{r rating score summarize, echo=FALSE}
 # rating score - mean, median, mode
 edx_year_sanitized %>% 
@@ -158,8 +170,11 @@ edx_year_sanitized %>%
             mode=Mode(rating))%>% 
   knitr::kable()
 ```
+The average rate score is 3.512 stars while both median and mode rate score is 4 stars (distribution is negatively skewed).
 
-graph rating score distribution percentage, distinguish between whole and half star
+About 2.5 milion ratings, which is 29 percent of the total ratings, are 4 stars and only 41 percent of the ratings is 3 stars and less.
+
+In general, whole star ratings are more common than half star ratings, and are 79.5 percent of the total ratings, as shown in the next plot. 
 ```{r graph rating score distribution, echo=FALSE}
 # figure 2 # 
 data.frame(edx_year_sanitized$rating, 
@@ -177,7 +192,6 @@ geom_vline(xintercept=median(edx_year_sanitized$rating) ,color="red", linetype="
 labs(x="Stars Rating", y="Ratings Percentage") +
 ggtitle("Stars Ratings Percentage")
 ``` 
-Quantity and quality are connected. 50 percent of the ratings are 4 stars and up.
 
 Top 15 blockbuster movies
 ```{r graph blockbuster movies, echo=FALSE}
@@ -193,8 +207,23 @@ edx_year_sanitized %>%
   ggtitle("Top 15 blockbuster movies")+
   labs(x="Rating Score", y="Total Number Of Ratings(Thousands)")
 ```
+The plot above demonstrates the top 15 blockbuster movies with overall number of ratings higher than 22k, most of them are rated above the average score.
 
-### 6. create additional partition of training and test set 
+The top leader is Pulp Fiction, directed by Quentin Tarantino, and was released on 1994.
+
+###The challenge of recommendation systems
+Since our goal is to predict the future ratings, we can treat this as a machine learning challenge and "fill" the empty cells from the above matrix.
+
+From the user's prespective, we'll want to fit a rating which is as close as possible to the actual rating the user would have rated the movie, and use that for future users with similiar preferences outside of our control.
+
+From the movie's prespective, we'll want to predict if the movie could become a blockbuster, or less than that.
+
+We'll use the following features: UserId, MovieId, Age of the movie at rating, time (release year) and genre.
+
+### 6. Create additional partition of training and test set 
+In this step, we'll create additional training and test sets, in order to evaluate the accuracy of the models we build and to prevent overfitting of the RMSE.
+
+Once we hit RMSE < 0.8649, we'll use the final holdout test set (validation) and determine the final model RMSE.
 ```{r additional partition}
 set.seed(755, sample.kind="Rounding") # if using R 3.5 or earlier, use `set.seed(755)`
 
@@ -213,14 +242,29 @@ train_edx <- rbind(train_edx, removed)
 rm(temp, removed)
 ```
 
-### 7.RMSE function computes the rmse for vectors of ratings and their corresponding predictors
+### 7.RMSE function
+RMSE is a good measure of how accurately the model predicts the response, and it is the most important criterion for fit if the main purpose of the model is prediction.
+
+Lower values of RMSE indicate better fit.
+
+RMSE  square the residual, and is affected by outliers. 
+
+The RMSE is analogous to the standard deviation (MSE to variance) and is a measure of how large the residuals are spread out.
+
+We define y(u,i) as the rating for movie i by user u and denote our prediction with ˆyu,i. The RMSE is then defined as <TODO>.
+with N being the number of user/movie combinations and the sum occurring over all of these combinations.
+If the RMSE is larger than 1, it means our typical error is larger than one star.
+
+
+RMSE function computes the rmse for vectors of ratings and their corresponding predictors
 ```{r RMSE function}
 RMSE <- function(true_ratings, predicted_ratings){
         sqrt(mean((true_ratings - predicted_ratings)^2))
 } 
 ```
 
-####  A. naive model  
+####  A. naive model 
+
 mu_hat is the average rating of all movies across all users
 predict the same ratings for all movies regardless of user 
 ```{r mu hat}
@@ -235,6 +279,7 @@ naive_mse <- MSE(test_edx$rating, mu_hat)
 
 #creating results table with naive approach
 naive_model_results <- tibble(method = "Average only",MSE=naive_mse, RMSE = naive_rmse)
+naive_model_results
 ```
 we got a number larger than 1, which means our typical error is larger than one star=not good! 
 the goal is to aspire for RMSE as low as 0.8649 
@@ -242,12 +287,6 @@ the goal is to aspire for RMSE as low as 0.8649
 ### 7. userId 
 
 #### User Activity
-
-Each of the 69.8K different usesrs rated in average _ different movies.the most frequent value of ratings is only _ movies, but there are _ percent of users who rated more than 500 movies! 
-The distribution is positively skewed (describe Weibull or Gamma dist??), as the mean is larger than the mode and median. 
-some users are more active than others at rating movies
-
-Users Ratings - mean, median, mode, min, max 
 ```{r users summarize, echo=FALSE}
 train_edx %>%  
   group_by(userId) %>% 
@@ -258,6 +297,9 @@ train_edx %>%
             min=min(count), max=max(count)) %>%
   knitr::kable()
 ```
+Each of the 69.8K different usesrs rated in average _ different movies.the most frequent value of ratings is only _ movies, but there are _ percent of users who rated more than 500 movies! 
+The distribution is positively skewed (describe Weibull or Gamma dist??), as the mean is larger than the mode and median. 
+some users are more active than others at rating movies
 
 ```{r number of rating dist, echo=FALSE}
 #graph number of rating dist. by number of users 
@@ -321,6 +363,9 @@ train_edx %>%
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
   ggtitle("Rating score dist. by number of users")+ 
   labs(x="Rating score", y="number of users")
+```
+```{r qu, echo=FALSE}
+summary(train_edx$rating)[c("1st Qu.","3rd Qu.")]
 ```
 
 b_u - average rating by user u regardless of movie
@@ -1448,8 +1493,21 @@ model_final_results <-
          MSE=model_final_mse, RMSE = model_final_rmse)
 model_final_results
 ```
-
-
+```{r}
+### Models results table
+rbind(naive_model_results,
+      model_1_results, 
+      model_1_1_results,
+      model_2_results, 
+      model_2_1_results,
+      model_3_results, 
+      model_3_1_results,
+      model_4_results, 
+      model_5_results,
+      model_6_results, 
+      model_final_results) %>%
+  arrange(MSE)
+```
 
 
 
