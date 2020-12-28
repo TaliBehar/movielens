@@ -414,7 +414,8 @@ user_rmses <-
 qplot(lambdas,user_rmses)
 
 penalty_term <- lambdas[which.min(user_rmses)]
-penalty_lambda_rmse <- c(penalty_term,user_rmses[lambda=penalty_term])
+penalty_lambda_rmse <- c(lambda=penalty_term,
+                         cv_rmse=user_rmses[lambda=penalty_term])
 penalty_lambda_rmse
 
 # apply lambda on edx train+test
@@ -629,7 +630,8 @@ qplot(lambdas,movie_rmses)
 
 penalty_term <- lambdas[which.min(movie_rmses)]
 
-penalty_lambda_rmse <- c(penalty_term,movie_rmses[lambda=penalty_term])
+penalty_lambda_rmse <- c(lambda=penalty_term,
+                         cv_rmse=movie_rmses[lambda=penalty_term])
 penalty_lambda_rmse
 
 # apply lambda on edx train+test
@@ -769,7 +771,8 @@ movie_user_rmses <-
 qplot(lambdas,movie_user_rmses)
 
 penalty_term <- lambdas[which.min(movie_user_rmses)]
-penalty_lambda_rmse <- c(penalty_term,movie_user_rmses[lambda=penalty_term])
+penalty_lambda_rmse <- c(lambde=penalty_term,
+                         cv_rmse=movie_user_rmses[lambda=penalty_term])
 penalty_lambda_rmse
 
 # apply lambda on edx train+test
@@ -1009,7 +1012,8 @@ user_age_rmses <-
 qplot(lambdas,movie_user_rmses)
 
 penalty_term <- lambdas[which.min(user_age_rmses)]
-penalty_lambda_rmse <- c(penalty_term,user_age_rmses[lambda=penalty_term])
+penalty_lambda_rmse <- c(lambda=penalty_term,
+                         cv_rmse=user_age_rmses[lambda=penalty_term])
 penalty_lambda_rmse
 
 # apply lambda on edx train+test
