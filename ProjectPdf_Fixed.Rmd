@@ -251,7 +251,7 @@ RMSE  square the residual, and is affected by outliers.
 
 The RMSE is analogous to the standard deviation (MSE to variance) and is a measure of how large the residuals are spread out.
 
-We define y(u,i) as the rating for movie i by user u and denote our prediction with ˆyu,i. The RMSE is then defined as <TODO>.
+We define y(u,i) as the rating for movie i by user u and denote our prediction with yu,i. The RMSE is then defined as <TODO>.
 with N being the number of user/movie combinations and the sum occurring over all of these combinations.
 If the RMSE is larger than 1, it means our typical error is larger than one star.
 
@@ -269,14 +269,14 @@ The naive model is the simplest possible recommendation system that predicts the
 
 The naive model takes into account a similar rating for all movies and users, and the differences are explained by random variation which will be defined by:
 
-Yu,i = μ + εu,i
+Yu,i = <TODO>
 
-εi,u = independent errors sampled from the same distribution centered at 0.
+ = independent errors sampled from the same distribution centered at 0.
 
-μ = true rating for all movies
+ = true rating for all movies
 
 
-The estimate that minimizes the RMSE is the least squares estimate of μ and which is the mu_hat: the average rating of all movies across all users
+The estimate that minimizes the RMSE is the least squares estimate of mu and which is the mu_hat: the average rating of all movies across all users
 
 ```{r mu hat}
 mu_hat <- mean(train_edx$rating)
@@ -377,13 +377,13 @@ the previous analysis showed that users are rating different from each other.
 also, some are very active while others rarely active.  
 
 We can augment the naive model by adding the term bu to represent average ranking by user u:
-Yu,i = μ + bu + εu,i
+Yu,i = mu + bu + eu,i
 
 b_u - the user specific effect/"bias" ; average rating by user u regardless of movie
 
 we can compute the predicted ratings using the next; 
-bu_hat= Yu,i-μ_hat 
-since the least squares estimateˆbu is just the average of Yu,i − ˆμ for each
+bu_hat= Yu,i-mu_hat 
+since the least squares estimate bu is just the average of Yu,i − muhat for each
 user u. 
 
 ```{r mu}
@@ -489,16 +489,12 @@ we control the total variability of the user effects Specifically, instead of mi
 <TODO - write the equasion>
 The first term is just least squares and the second is a penalty that gets larger when many b's are large. Using calculus we can actually show that the values of bi that minimize this
 equation are:
-ˆb
-i(λ) = 1
-λ + ni
-Xni
-u=1
-(Yu,i − ˆμ)
+
+
 where ni is the number of ratings made for movie i. This approach will have our desired
 effect: when our sample size ni is very large, a case which will give us a stable estimate,
-then the penalty λ is effectively ignored since ni + λ ≈ ni. However, when the ni is small,
-then the estimateˆbi(λ) is shrunken towards 0. The larger λ, the more we shrink.
+then the penalty is effectively ignored since . However, when the ni is small,
+then the estimate is shrunken towards 0. The larger, the more we shrink.
 
 #### Regularization #
 lambda is a tuning parameter. we will use cross-validation to choose it. 
@@ -688,14 +684,14 @@ train_edx %>%
 ####  c. second model - modeling movie effect
 
 We can augment the naive model by adding the term bi to represent average ranking for movie i:
-Yu,i = μ + bi + εu,i
+
 
 b_i - the movie specific effect/"bias" ;  average rating for movie i regardless of user
 
 we can compute the predicted ratings using the next; 
 
-bi_hat= Yu,i-μ_hat 
-since the least squares estimateˆbu is just the average of Yu,i − ˆμ for each
+bi_hat= 
+since the least squares estimate bu is just the average of  for each
 movie i. 
 
 ```{r fit movie ave}
@@ -880,7 +876,7 @@ Therefor it is much right to medel them together.
 
 The model will look like this:
 
-Yu,i = μ + bi + bui + εu,i
+Yu,i = mu + bi + bui + eu,i
 
 
 b_ui - average rating for movie i with user specific effect. 
