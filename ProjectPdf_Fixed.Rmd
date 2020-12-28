@@ -239,7 +239,7 @@ If we were to look at the entire matrix, the empty cells (about 737 million cell
 Users rated only the selected movies by their personal preferences, therefore we have "only" 9 million ratings. 
 
 Each of the colored cells represent one rating and the color varies according to its score. 
-```{r  'figure 1' preview matrix, echo=FALSE}
+```{r  figure 1 preview matrix, echo=FALSE}
  
 users <- sample(unique(edx_year_sanitized$userId), 120)
 edx_year_sanitized %>% 
@@ -268,7 +268,7 @@ The average rate score is 3.512 stars while both median and mode rate score is 4
 About 2.5 milion ratings, which is 29 percent of the total ratings, are 4 stars and only 41 percent of the ratings is 3 stars and less.
 
 In general, whole star ratings are more common than half star ratings, and are 79.5 percent of the total ratings, as shown in the next plot. 
-```{r 'figure 2' graph rating score distribution, echo=FALSE}
+```{r figure 2 graph rating score distribution, echo=FALSE}
 
 data.frame(edx_year_sanitized$rating, 
 stars=ifelse(floor(edx_year_sanitized$rating)==edx_year_sanitized$rating,
@@ -286,7 +286,7 @@ labs(x="Stars Rating", y="Ratings Percentage") +
 ggtitle("Stars Ratings Percentage")
 ``` 
     * Top 15 blockbuster movies
-```{r 'figure 3' graph blockbuster movies, echo=FALSE}
+```{r figure 3 graph blockbuster movies, echo=FALSE}
 edx_year_sanitized %>% 
   group_by(title) %>%
   summarize(count_k=n()/1000, avg=mean(rating)) %>% # count in thousands
@@ -398,7 +398,7 @@ Both plots demonstrates extreme observations (outliers) e.g. very low or high nu
 
 Outliers affect RMSE which is highly sensitive to them, and therefore we will have to treat this and set penalty term going forward.
 
-```{r 'figure 4-5', echo=FALSE}
+```{r figure 4-5, echo=FALSE}
 
 # graph number of rating dist. by number of users 
 user_hist <- 
@@ -440,7 +440,7 @@ grid.arrange(rate_p_u, user_hist, ncol=2)
 ```
 50% of the ratints are between 3 to 4 stars. Some users love every movie they watch and simply rate most of them 5 stars, but the left tail inidicate users that are very critic and rate lot of 1-2 stars. 
 
-```{r 'figure 6' user rating score dist, echo=FALSE}
+```{r figure 6 user rating score dist, echo=FALSE}
  
 train_edx %>% 
   group_by(userId) %>% 
@@ -475,7 +475,7 @@ predicted_ratings <-
   pull(predicted)
 ```
 The estimates........ <TODO>
-```{r 'figure 7-8' , echo=FALSE}
+```{r figure 7-8 , echo=FALSE}
 
 # plot the user spesific effect - these estimates very substantially
 user_b_u <- 
@@ -517,7 +517,7 @@ model_1_results
 we obtain RMSE = 0.9791, only 8% improvement from the naive model. 
 
   * The model mean squared errors
-```{r 'figure 9' plot the user mse, echo=FALSE}
+```{r figure 9 plot the user mse, echo=FALSE}
 
 test_edx %>% 
   left_join(fit_user_ave, by='userId') %>% 
@@ -666,7 +666,7 @@ In average, each one of the 10.6k different movies get rated 674 times.
 the movies most frequently gets only 1 ratings, but there are exeptional like "Pulp Fiction" that got rated 3734% (!!!) more than average with 25169 users ratings.
 
 the distribution is positively skewed, like the user activity dist as the mean is larger than the mode and median.
-```{r 'figure 10-11', echo=FALSE}
+```{r figure 10-11, echo=FALSE}
 # graph number of rating dist. by number of movies 
 movie_hist <- 
   train_edx %>% 
@@ -716,7 +716,7 @@ Some movies are just generally rated higher than others.
 
 50% of the ratints are between 2.8 to 3.6 stars. very few gets prefect 5 srars
 Respectively very few got the shady 1 star. 
-```{r 'figure 12' movie rating dist, echo=FALSE}
+```{r figure 12 movie rating dist, echo=FALSE}
 train_edx %>% 
   group_by(movieId) %>% 
   summarise(rating_score=mean(rating)) %>% 
@@ -746,7 +746,7 @@ predicted_ratings <-
   pull(predicted)
 ```
 The estimates........ <TODO>
-```{r 'figure 13-14', echo=FALSE}
+```{r figure 13-14, echo=FALSE}
 # plot the movie spesific effect - these estimates very substantially
 movie_b_i <-
   fit_movie_ave %>%
@@ -788,7 +788,7 @@ model_2_results
 We obtain RMSE=0.9439868, improvement of 11% from the naice mosel RMSE
 
   * The model mean squared errors
-```{r 'figure 15' plot movie mse, echo=FALSE}
+```{r figure 15 plot movie mse, echo=FALSE}
 test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>% 
   select(movieId,rating,b_i, title) %>% 
@@ -891,7 +891,7 @@ test_edx %>%
   * comparing between the estimates
     
 To see how the estimates shrink, we'll plot the regularized estimates vs. least squre estimates 
-```{r 'figure 16' estimated plot}
+```{r figure 16 estimated plot}
 data_frame(original = fit_movie_ave$b_i, 
            regularlized = fit_reg_movie_ave$reg_b_i, 
            n = fit_reg_movie_ave$n_i) %>%
@@ -940,7 +940,7 @@ model_3_results
 The model RMSE= 0.8666408, 18.2% improvement from the naive model. 
 
   * The model mean squared errors 
-```{r 'figure 17' plot movie and user mse, echo=FALSE}
+```{r figure 17 plot movie and user mse, echo=FALSE}
 
 test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>%
@@ -1067,7 +1067,7 @@ test_edx %>%
   * comparing between the estimates
     
 To see how the estimates shrink, we'll plot the regularized estimates vs. least squre estimates 
-```{r 'figure 18' plot estimate}
+```{r figure 18 plot estimate}
 data_frame(original = fit_user_movie_ave$b_ui, 
            regularlized = fit_reg_user_movie_ave$reg_b_ui,
            n=fit_reg_user_movie_ave$n_i) %>%
@@ -1109,7 +1109,7 @@ The tiled colors represent the rate score; darker tile indicate higher score.
 
 we can see that older movies score higher in average, but the effect is not significant.  
 
-```{r 'figur 19-20', echo=FALSE}
+```{r figur 19-20, echo=FALSE}
 
 # graph -  scoring by age 
 scoring_by_age <- 
@@ -1169,7 +1169,7 @@ age_ex._1984[1:10,] %>%
 The next plot represent the averge rate score of the age at rating (for movies with 5k total ratings and up). 
 
 Old movies score higher, but they also rated less times, which need to take into penalize considaration.  
-```{r 'figure 21' age ave rating, echo=FALSE}
+```{r figure 21 age ave rating, echo=FALSE}
 
 train_edx %>% 
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
@@ -1185,7 +1185,7 @@ train_edx %>%
 ```
 The points at the plot represent different movies. 
 There are much more newer movies than older, However there is some avidence for age effect 
-```{r 'figure 22' avidence for age effect, echo=FALSE}
+```{r figure 22 avidence for age effect, echo=FALSE}
 
 train_edx %>% 
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
@@ -1219,7 +1219,7 @@ train_edx %>%
   knitr::kable()
 ```
 Classical Hollywood cinema 36-93 years old movies and their average score as shown;
-```{r 'figure 23' graph old movies, echo=FALSE}
+```{r figure 23 graph old movies, echo=FALSE}
 
 train_edx %>% 
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
@@ -1357,7 +1357,7 @@ test_edx %>%
   summary()
 ```
   * The mean squared residual distribution; 
-```{r 'figure 24' user age mse plot, echo=FALSE}
+```{r figure 24 user age mse plot, echo=FALSE}
 test_edx %>%
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
   filter(age_at_rating>=0)%>%
@@ -1391,7 +1391,7 @@ tibble(Year = c("Release", "rate"),
 
 The number of ratings for each movie against the year the movie came out
 (Each point represent different movie); 
-```{r 'figur 24' number of rating per movie over time, echo=FALSE, out.width = '100%'}
+```{r figur 24 number of rating per movie over time, echo=FALSE, out.width = '100%'}
 
 train_edx %>% 
   group_by(movieId) %>% 
@@ -1415,7 +1415,7 @@ The more recent movie is, the less time users have had to rate it.
 In addition, as the total rating count increases, the total rating score decreases. 
 
 Newer released movies gets more rated, but the amount of the ratings affects the average score and lower it. 
-```{r 'figure 26' average rating score for each release year, echo=FALSE}
+```{r figure 26 average rating score for each release year, echo=FALSE}
 train_edx %>% 
   group_by(release_year) %>%
   summarize(k_count=n()/1000,      # count in thousands
@@ -1432,7 +1432,7 @@ train_edx %>%
 The next plot shows post-1993 movies - ratings per year and their average ratings. Each point represent unique movie. 
 
 As the rating per year increases, the average rate score increases, in other words; The more often a movie is rated, the higher its average rating.  
-```{r 'figure 27' post-1993 movies, echo=FALSE}
+```{r figure 27 post-1993 movies, echo=FALSE}
 
 train_edx %>% 
   filter(release_year >= 1993) %>%
@@ -1468,7 +1468,7 @@ train_edx %>%
 The numbers of the movies being rated generaly decreases every year. 
 
 The trend of the average rating score is not distinct, but both plot indicate that there is some evidence of a time effect on average rating.
-```{r 'figure 28-29' time effect evidance, echo=FALSE, out.width = '80%'}
+```{r figure 28-29 time effect evidance, echo=FALSE, out.width = '80%'}
 # graph Number of movies per each rate year
 
 rating_count_per_rate_year <- 
@@ -1557,7 +1557,7 @@ test_edx %>%
   summary()
 ```
   * The model MSE distribution;   
-```{r 'figure 30' time effect model MSE distribution, echo=FALSE}
+```{r figure 30 time effect model MSE distribution, echo=FALSE}
 test_edx %>% 
   mutate(week = round_date(rate_date, unit = "week")) %>%
   left_join(fit_reg_movie_ave, by='movieId') %>%
@@ -1598,7 +1598,7 @@ train_edx_genres <- train_edx %>%  separate_rows(genres, sep="\\|")
 test_edx_genres <- test_edx %>%  separate_rows(genres, sep="\\|")
 ```
 The Distribution of the geners by their total ratings and total average score as follow; 
-```{r 'figure 31' gener dist, echo=FALSE}
+```{r figure 31 gener dist, echo=FALSE}
 
 train_edx_genres %>% 
   group_by(genres) %>% 
@@ -1707,7 +1707,7 @@ model_6_results <-
 model_6_results
 ```
   * The model mean squared error distribution;
-```{r 'figure 34' model 6 mse plot, echo=FALSE}
+```{r figure 34 model 6 mse plot, echo=FALSE}
 
 test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
   left_join(fit_reg_movie_ave, by='movieId') %>%
