@@ -262,6 +262,18 @@ rate_p_u<-
 # plot 2 graphs - place multiple grobs on a page 
 grid.arrange(rate_p_u, user_hist, ncol=2)
 
+# plot user rating dist.
+# figure 7 # 
+train_edx %>% 
+  group_by(userId) %>% 
+  summarise(rating_score=mean(rating)) %>% 
+  ggplot(aes(rating_score))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(train_edx$rating)),color="red",
+             linetype="dashed", size=0.5)+
+  ggtitle("Rating score dist. by number of users")+ 
+  labs(x="Rating score", y="number of users")
+
 ####  B. first model - modeling user effect
 
 # previous analysis showed that users are rating different from each other. 
@@ -270,18 +282,8 @@ grid.arrange(rate_p_u, user_hist, ncol=2)
 mu <- mean(train_edx$rating)
 
 # plot user rating dist.
-# figure 6 #
 
-train_edx %>% 
-  group_by(userId) %>% 
-  summarise(rating_score=mean(rating)) %>% 
-  ggplot(aes(rating_score))+
-  geom_histogram(bins=30, color="black")+
-  geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("Rating score dist. by number of users")+ 
-  labs(x="Rating score", y="number of users")
 
-summary(train_edx$rating)[c("1st Qu.","3rd Qu.")]
 
 # b_u - average rating by user u regardless of movie
 fit_user_ave <- 
@@ -348,6 +350,15 @@ test_edx %>%
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
   ggtitle("User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of users")
+
+# se summarize
+test_edx %>% 
+  left_join(fit_user_ave, by='userId') %>% 
+  select(userId,rating,b_u) %>% 
+  mutate(predicted=b_u+mu,
+         squared_errors=(rating-predicted)^2) %>% 
+  select(squared_errors) %>% 
+  summary()
 
 #### Regularization #
 
@@ -421,6 +432,7 @@ reg_predicted_ratings <-
   mutate(predicted=mu+reg_b_u) %>%
   pull(predicted)
 
+#panelized model results 
 model_1_1_rmse <- RMSE(true_ratings=test_edx$rating,
                        predicted_ratings=reg_predicted_ratings)
 model_1_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
@@ -430,15 +442,18 @@ model_1_1_results <- tibble(method = "Reg. User Effect",
                             MSE=model_1_1_mse, RMSE = model_1_1_rmse)
 model_1_1_results
 
+# reg se summarize
+test_edx %>% 
+  left_join(fit_reg_user_ave, by='userId') %>% 
+  select(userId,rating,reg_b_u) %>% 
+  mutate(predicted=reg_b_u+mu,
+         reg_squared_errors=(rating-predicted)^2) %>% 
+  select(reg_squared_errors) %>% 
+  summary()
 
 ### 9. movieId
 
 #### Movie Rating
-
-#In average, each one of the 10.6k different movies get rated _ times.
-#the movies most frequently gets only _ ratings, but there are exeptional like "Pulp Fiction" 
-#that got rated _ more than average with _ users ratings.
-#the distribution is positively skewed, like the user activity dist. (describe Weibull or Gamma dist??) as the mean is larger than the mode and median.
 
 # Movie ratings- mean, median, mode, min, max  
 train_edx %>% 
@@ -450,6 +465,10 @@ train_edx %>%
             min=min(count), max=max(count)) %>%
   knitr::kable()
 
+#In average, each one of the 10.6k different movies get rated _ times.
+#the movies most frequently gets only _ ratings, but there are exeptional like "Pulp Fiction" 
+#that got rated _ more than average with _ users ratings.
+#the distribution is positively skewed, like the user activity dist. (describe Weibull or Gamma dist??) as the mean is larger than the mode and median.
 
 # graph number of rating dist. by number of movies 
 # figure 10 # 
@@ -485,12 +504,6 @@ rate_p_m<-
 # plot 2 graphs - place multiple grobs on a page
 grid.arrange(rate_p_m, movie_hist, ncol=2)
 
-####  c. second model - modeling movie effect
-
-# We know from experience that some movies are just generally rated higher than others. This
-# intuition, that different movies are rated differently, is confirmed by data
-
-
 # plot movie rating dist.
 # figure 12 # 
 train_edx %>% 
@@ -501,6 +514,16 @@ train_edx %>%
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
   ggtitle("Rating score dist. by number of movies")+ 
   labs(x="Rating score", y="number of movies")
+
+#find the quantiles
+train_edx %>% 
+  group_by(movieId) %>% 
+  summarise(rating_score=mean(rating)) %>% summary(rating_score)
+
+####  c. second model - modeling movie effect
+
+# We know from experience that some movies are just generally rated higher than others. This
+# intuition, that different movies are rated differently, is confirmed by data
 
 # b_i - average rating for movie i regardless of user
 fit_movie_ave <- 
@@ -568,6 +591,16 @@ test_edx %>%
   ggtitle("User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of movies")
 
+# se summary 
+test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>% 
+  select(movieId,rating,b_i) %>% 
+  mutate(predicted=b_i+mu,
+         squared_errors=(rating-predicted)^2) %>% 
+  select(squared_errors) %>% 
+  summary()
+
+
 #### Regularization #
 # choosing penalty term (lambda) for movie effect
 equation_mu <- mean(train_edx_cv$rating)
@@ -624,6 +657,15 @@ model_2_1_results <- tibble(method = "Reg. Movie Effect",
                             MSE=model_2_1_mse, RMSE = model_2_1_rmse)
 model_2_1_results
 
+# reg movie se summary
+test_edx %>% 
+  left_join(fit_reg_movie_ave, by='movieId') %>% 
+  select(movieId,rating,reg_b_i) %>% 
+  mutate(predicted=reg_b_i+mu,
+         reg_squared_errors=(rating-predicted)^2) %>% 
+  select(reg_squared_errors) %>% 
+  summary()
+
 #to see hoe the estimates shrink, plot the regularized estimates vs least squre estimates 
 # figure 16 #
 data_frame(original = fit_movie_ave$b_i, 
@@ -676,6 +718,16 @@ test_edx %>%
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
   ggtitle("Movie + User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of movies")
+
+# squared errors summary
+test_edx %>% 
+  left_join(fit_movie_ave, by='movieId') %>%
+  left_join(fit_user_movie_ave, by="userId") %>%
+  select(movieId,userId,rating,b_i,b_ui) %>% 
+  mutate(predicted=mu+b_i+b_ui,
+         squared_errors=(rating-predicted)^2) %>% 
+  select(squared_errors) %>%
+  summary()
 
 #### Regularization #
 
@@ -754,6 +806,16 @@ model_3_1_results <- tibble(method = "Reg. Movie + User Effect",
                             MSE=model_3_1_mse, RMSE = model_3_1_rmse)
 model_3_1_results
 
+# reg squared errors summary
+test_edx %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  mutate(predicted = mu+reg_b_i+reg_b_ui,
+         reg_squared_errors=(rating-predicted)^2) %>% 
+  select(reg_squared_errors) %>% 
+  summary()
+
+
 #to see how the estimates shrink, plot the regularized estimates vs least squre estimates 
 # figure 18 #
 data_frame(original = fit_user_movie_ave$b_ui, 
@@ -764,6 +826,16 @@ data_frame(original = fit_user_movie_ave$b_ui,
 
 ### 11. Age of the movie at rating
 #### how old was the movie during rating
+
+# age of movie at rating - mean, median, mode, min, max  
+train_edx %>% 
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  summarize(mean=mean(age_at_rating), 
+            median=median(age_at_rating), 
+            mode=Mode(age_at_rating,na.rm=FALSE), 
+            min=min(age_at_rating), max=max(age_at_rating)) %>% 
+  knitr::kable() 
 
 # figure 19 # 
 # graph - scoring by age; rate year vs. release year, fill= average rating score
@@ -805,12 +877,12 @@ plot_grid(ave_scoring_by_age, scoring_by_age, ncol=1, align="v") # TO DO- share 
 age_ex._1984 <- 
   train_edx %>% 
   group_by(title, rate_year) %>%
-  summarize(count=n(),Ave_rating_score = mean(rating),
+  summarize(count=n(),Ave_rating_score = round(mean(rating),3),
             rate_year=rate_year[1],
             release_year=release_year[1]) %>% 
   filter(release_year=="1984" & count>1000) %>% 
   group_by(rate_year) %>%
-  mutate(ave = mean(Ave_rating_score)) %>% arrange(rate_year)
+  mutate(ave = round(mean(Ave_rating_score),3)) %>% arrange(rate_year)
 # display first 10 in a table
 age_ex._1984[1:10,] %>% 
   knitr::kable() 
@@ -824,15 +896,6 @@ age_ex._1984[1:10,] %>%
 #  ggtitle("1984 release year example")+ 
 #  labs(x="Movie Release Year", y="Movie Rate Year") 
 
-# age of movie at rating - mean, median, mode, min, max  
-train_edx %>% 
-  mutate(age_at_rating= abs(rate_year-release_year)) %>%
-  filter(age_at_rating>=0)%>%
-  summarize(mean=mean(age_at_rating), 
-            median=median(age_at_rating), 
-            mode=Mode(age_at_rating,na.rm=FALSE), 
-            min=min(age_at_rating), max=max(age_at_rating)) %>% 
-  knitr::kable() 
 
 # figure 21 #
 # graph average Ratings distribution by the age of the movie
@@ -989,7 +1052,33 @@ model_4_results <- tibble(method = "Reg. User + Age of the movie at rating Effec
                             MSE=model_4_mse, RMSE = model_4_rmse)
 model_4_results
 
+#The residual summary as shown; 
+test_edx %>%
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  left_join(fit_reg_user_ave, by='userId') %>%
+  left_join(fit_reg_user_age_ave, by='age_at_rating') %>%
+  mutate(predicted = mu+reg_b_u+reg_b_ua,
+         reg_squared_errors=(rating-predicted)^2) %>% 
+  select(reg_squared_errors) %>% 
+  summary()
 
+# plot the mse   
+test_edx %>%
+  mutate(age_at_rating= abs(rate_year-release_year)) %>%
+  filter(age_at_rating>=0)%>%
+  left_join(fit_reg_user_ave, by='userId') %>%
+  left_join(fit_reg_user_age_ave, by='age_at_rating') %>%
+  mutate(predicted = mu+reg_b_u+reg_b_ua,
+         se=((rating-predicted)^2)) %>%
+  group_by(userId) %>% 
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("")+ 
+  labs(x="Mean squared errors", y="number of users")
+ 
 ### 12. Time Frame Ranges
 
 # movie release streched over 93 years, while they first started to be rated after 80 years 
@@ -1051,14 +1140,16 @@ train_edx %>%
   ggtitle("post-1993 movies ratings per year and their average ratings")+ 
   labs(x="Rating Per Year", y="Average Rating Score") 
 
-# The top 15 movies with the most ratings per year, along with their average ratings
+# The top 10 movies with the most ratings per year, along with their average ratings
 # (represent the upper right part of the figure 7 graph)
 train_edx %>% 
   filter(release_year >= 1993) %>%
   group_by(movieId) %>%
-  summarize(title = title[1], Total_ratings_count = n(), years = 2018 - first(release_year),
-            ave_rating = mean(rating)) %>%
-  mutate(rating_per_year = Total_ratings_count/years) %>%
+  summarize(title = title[1], 
+            Total_ratings_count = n(), 
+            years = 2018 - first(release_year),
+            ave_rating = round(mean(rating),2)) %>%
+  mutate(rating_per_year =round( Total_ratings_count/years,2)) %>%
   top_n(10, rating_per_year) %>% select(-movieId) %>%
   arrange(desc(rating_per_year, years)) %>%
   knitr::kable()
@@ -1099,7 +1190,7 @@ score_by_week <-
 grid.arrange(rating_count_per_rate_year,score_by_week, ncol=2)
 
 #### F. Fifth model Reg. Movie + User Effect + Time effect 
- 
+# fit the model; 
 fit_time_ave <-  
   train_edx %>% 
   mutate(week = round_date(rate_date, unit = "week")) %>%
@@ -1108,6 +1199,7 @@ fit_time_ave <-
   group_by(week) %>%
   summarize(d_ui=mean(rating-mu-reg_b_i-reg_b_ui))
 
+# predict the ratings; 
 predicted_ratings <- 
   test_edx %>% 
   mutate(week = round_date(rate_date, unit = "week")) %>%
@@ -1117,6 +1209,7 @@ predicted_ratings <-
   mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui) %>%
   pull(predicted)
 
+# the model results
 model_5_rmse <- RMSE(true_ratings=test_edx$rating,
                      predicted_ratings=predicted_ratings)
 
@@ -1127,7 +1220,37 @@ model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
                           MSE=model_5_mse, RMSE = model_5_rmse)
 model_5_results
 
+#The residual summary as shown; 
+test_edx %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui,
+         reg_squared_errors=(rating-predicted)^2) %>% 
+  select(reg_squared_errors) %>% 
+  summary()
+
+# plot the mse   
+test_edx %>% 
+  mutate(week = round_date(rate_date, unit = "week")) %>%
+  left_join(fit_reg_movie_ave, by='movieId') %>%
+  left_join(fit_reg_user_movie_ave, by='userId') %>%
+  left_join(fit_time_ave, by="week") %>%
+  mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui,
+         se=((rating-predicted)^2)) %>%
+  group_by(movieId) %>% 
+  summarise(mse=mean(se)) %>% 
+  ggplot(aes(mse))+
+  geom_histogram(bins=30, color="black")+
+  geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
+  ggtitle("")+ 
+  labs(x="Mean squared errors", y="number of movies")
+
+
 ### 13. Genres
+# example of the diffrent geners
+train_edx[20:23,] %>% select (title,genres)
 
 # separting train + test edx rows for unique genres
 train_edx_genres <- train_edx %>%  separate_rows(genres, sep="\\|")
@@ -1151,10 +1274,10 @@ train_edx_genres %>%
 train_edx_genres %>% 
   group_by(genres) %>% 
   filter(genres!="(no genres listed)") %>%
-  summarize(count_m = n()/1000000, #number of ratings in millions
-            ave_rating=mean(rating),
+  summarize(count_m = round(n()/1000000,2), #number of ratings in millions
+            ave_rating=round(mean(rating),2),
             year=release_year[1]) %>% 
-  mutate(percentage=100*count_m/sum(count_m)) %>% 
+  mutate(percentage=round(100*count_m/sum(count_m)),2) %>% 
   filter(ave_rating>=3.4 & count_m>=quantile(count_m, 0.80)) %>% 
   arrange(desc(percentage)) %>%   
   select(genres,count_m,ave_rating, percentage) %>% 
