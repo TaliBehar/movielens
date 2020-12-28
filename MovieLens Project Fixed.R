@@ -301,7 +301,7 @@ user_b_u <-
   ggplot(aes(b_u))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("")+
+  ggtitle("b_u distribution")+
   labs(x="b_u", y="number of users")
 
 # plot the user predicted rating
@@ -315,7 +315,7 @@ user_predicted_ratings <-
   ggplot(aes(predicted))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("Rating score dist. by number of users")+ 
+  ggtitle("Rating score dist.")+ 
   labs(x="Rating score", y="number of users")
 
 # display 2 plots together
@@ -504,7 +504,7 @@ train_edx %>%
                  color="green", linetype="dashed", size=0.5)+
   geom_hline(aes(yintercept=median(count)),color="blue", 
                  linetype="dashed", size=0.5)+
-  ggtitle("Total Number Of Ratings Per Movie")+ 
+  ggtitle("Total N. Of Ratings Per Movie")+ 
   labs(x="10,677 Unique Movies", y="Total Ratings Per Movie") + 
   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
 
@@ -553,7 +553,7 @@ movie_b_i <-
   ggplot(aes(b_i))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("")+
+  ggtitle("b_i distribution")+
   labs(x="b_i", y="number of movies")
 
 # plot the movie predicted rating
@@ -567,7 +567,7 @@ movie_predicted_ratings <-
   ggplot(aes(predicted))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("Rating score dist. by number of movies")+ 
+  ggtitle("Rating score dist. by n. of movies")+ 
   labs(x="predicted Rating score", y="number of movies")
 
 # plot 2 graphs together
@@ -1097,7 +1097,7 @@ test_edx %>%
   ggplot(aes(mse))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
-  ggtitle("")+ 
+  ggtitle("User + Age at rating model MSE dist.")+ 
   labs(x="Mean squared errors", y="number of users")
  
 ## H. Time Frame Ranges 
@@ -1265,7 +1265,7 @@ test_edx %>%
   ggplot(aes(mse))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
-  ggtitle("")+ 
+  ggtitle("User+Movie+Time effect model MSE dist.")+ 
   labs(x="Mean squared errors", y="number of movies")
 
 
@@ -1390,7 +1390,7 @@ test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
   ggplot(aes(mse))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
-  ggtitle("7")+ 
+  ggtitle("Model 6 MSE dist.")+ 
   labs(x="Mean squared errors", y="number of movies")
 
 #####################

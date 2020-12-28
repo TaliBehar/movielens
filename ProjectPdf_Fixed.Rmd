@@ -6,7 +6,7 @@ date: "December 2020"
 output:
   pdf_document:
     number_sections: true
-    highlight: monochrome
+
 ---
 
 ```{r setup, include=FALSE}
@@ -204,6 +204,7 @@ glimpse(edx)
 And 9 million rows. Each row provides a given rating to one movie by specific user. 
 
 **4. Sanitizing the data - timestamp column**
+
 The date-time in the 'edx' timestamp column is a point on the timeline, stored as the number of seconds since 1970-01-01 00:00:00 UTC.
 
 In order to be able to use the time information and for better convenience, I converted the timestamp into rate date, added rate year column, extracted the release year from the movie title and deleted the release year from movie title
@@ -380,7 +381,7 @@ To remind ourselves, the goal is to aspire for RMSE < 0.8649
 **D. userId** 
 
   **1. User Activity**
-```{r users summarize, echo=FALSE}
+```{r Users Ratings summarize, echo=FALSE}
 train_edx %>%  
   group_by(userId) %>% 
   summarize(count=n()) %>% 
@@ -398,11 +399,9 @@ Both plots demonstrates extreme observations (outliers) e.g. very low or high nu
 
 Outliers affect RMSE which is highly sensitive to them, and therefore we will have to treat this and set penalty term going forward.
 
-```{r figure 4-5, echo=FALSE}
-
+```{r figure 4, echo=FALSE}
 # graph number of rating dist. by number of users 
-user_hist <- 
-  train_edx %>% 
+train_edx %>% 
   group_by(userId) %>%
   summarize(count=n()) %>% 
   ggplot(aes(count)) +
@@ -414,29 +413,28 @@ user_hist <-
   geom_vline(aes(xintercept=mean(count),color="mean"), 
                  linetype="dashed", size=0.5)+
   scale_color_manual(name = "Statistics", 
-                     values = c(median = "skyblue1", mean = "pink1",Mode="blue"))+
+                     values = c(median = "blue", mean = "red",Mode="green"))+
   scale_x_log10()+
   ggtitle("User Distribution")+ 
   labs(x="Number of Ratings Count", y="Number of Users") 
+```
 
+```{r figure 5, echo=FALSE}
 # graph number of ratings per user, see extreme observation  
-rate_p_u<- 
-  train_edx %>% 
+train_edx %>% 
   group_by(userId) %>%
   summarize(count=n()) %>% 
   ggplot(aes(userId,count)) +
   geom_point(alpha=0.1)+
-  geom_hline(aes(yintercept=mean(count)),color="pink1", 
+  geom_hline(aes(yintercept=mean(count)),color="red", 
                  linetype="dashed", size=0.5)+
   geom_hline(aes(yintercept=Mode(count, na.rm = FALSE)),color="blue",
                  linetype="dashed", size=0.5)+
-  geom_hline(aes(yintercept=median(count)),color="skyblue1", 
+  geom_hline(aes(yintercept=median(count)),color="green", 
                  linetype="dashed", size=0.5)+
   ggtitle("Total Number Of Ratings Per user")+ 
   labs(x="userId - 69,878 Unique Users", y="Total Ratings Per User")
 
-# plot 2 graphs - place multiple grobs on a page 
-grid.arrange(rate_p_u, user_hist, ncol=2)
 ```
 50% of the ratints are between 3 to 4 stars. Some users love every movie they watch and simply rate most of them 5 stars, but the left tail inidicate users that are very critic and rate lot of 1-2 stars. 
 
@@ -459,14 +457,14 @@ train_edx %>%
 ```{r mu}
 mu <- mean(train_edx$rating)
 ```
-    * Fit the model
+  * Fit the model; 
 ```{r b_u}
 fit_user_ave <- 
   train_edx %>% 
   group_by(userId) %>% 
   summarize(b_u = mean(rating - mu))
 ```
-    * Predict the rarings - how much our prediction improves once using y=mu+b_u
+  * Predict the rarings - how much our prediction improves once using y=mu+b_u
 ```{r user effect predicted ratings}
 predicted_ratings <- 
   test_edx %>% 
@@ -483,7 +481,7 @@ user_b_u <-
   ggplot(aes(b_u))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("")+
+  ggtitle("b_u distribution")+
   labs(x="b_u", y="number of users")
 
 # plot the user predicred rating
@@ -496,13 +494,13 @@ user_predicted_ratings <-
   ggplot(aes(predicted))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("Rating score dist. by number of users")+ 
+  ggtitle("Rating score dist.")+ 
   labs(x="Predicted Rating score", y="number of users")
 
 # display 2 plots together
 grid.arrange(user_b_u,user_predicted_ratings, ncol=2)
 ```
-    * Model results
+  * Model results
 ```{r model results user effect}
 # model RMSE
 model_1_rmse <- RMSE(true_ratings=test_edx$rating,
@@ -532,7 +530,7 @@ test_edx %>%
   ggtitle("User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of users")
 ```
-
+  * Model 1 squared error summarize; 
 ```{r se user, echo=FALSE}
 test_edx %>% 
   left_join(fit_user_ave, by='userId') %>% 
@@ -573,7 +571,7 @@ removed <- anti_join(temp, test_edx_cv)
 train_edx_cv <- rbind(train_edx_cv, removed)
 rm(temp, removed)
 ```
-    * Choosing penalty term (lambda) for user effect
+  * Choosing penalty term (lambda) for user effect;
 ```{r lambda for user effect}
 equation_mu <- mean(train_edx_cv$rating)
 
@@ -607,7 +605,7 @@ penalty_lambda_rmse <- c(lambda=penalty_term,
                          cv_rmse=user_rmses[lambda=penalty_term])
 penalty_lambda_rmse
 ```
-    * Apply lambda on edx train and test set
+  * Apply lambda on edx train and test set
 ```{r fir reg user effect}
 fit_reg_user_ave <- 
   train_edx %>% 
@@ -615,7 +613,7 @@ fit_reg_user_ave <-
   summarize(n_i=n(), 
             reg_b_u=(sum(rating - mu)/(n_i+penalty_term)))
 ```
-    *Penalized prediction
+  * Penalized prediction
 ```{r reg predicted rating user}
 reg_predicted_ratings <- 
   test_edx %>% 
@@ -623,18 +621,18 @@ reg_predicted_ratings <-
   mutate(predicted=mu+reg_b_u) %>%
   pull(predicted)
 ```
-    * Penalized model results 
+  * Penalized model results 
 ```{r reg user effect results}
 model_1_1_rmse <- RMSE(true_ratings=test_edx$rating,
                        predicted_ratings=reg_predicted_ratings)
 model_1_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 
-#add the results to the table 
+# add the results to the table 
 model_1_1_results <- tibble(method = "Reg. User Effect",
                             MSE=model_1_1_mse, RMSE = model_1_1_rmse)
 model_1_1_results
 ```
-
+  * Model 1.1 squared error summarize 
 ```{r reg se user}
 test_edx %>% 
   left_join(fit_reg_user_ave, by='userId') %>% 
@@ -666,10 +664,9 @@ In average, each one of the 10.6k different movies get rated 674 times.
 the movies most frequently gets only 1 ratings, but there are exeptional like "Pulp Fiction" that got rated 3734% (!!!) more than average with 25169 users ratings.
 
 the distribution is positively skewed, like the user activity dist as the mean is larger than the mode and median.
-```{r figure 10-11, echo=FALSE}
+```{r figure 10 graph number of rating dist. by number of movies, echo=FALSE}
 # graph number of rating dist. by number of movies 
-movie_hist <- 
-  train_edx %>% 
+train_edx %>% 
   group_by(movieId) %>%
   summarize(count=n()) %>%
   ggplot(aes(count)) +
@@ -681,30 +678,28 @@ movie_hist <-
   geom_vline(aes(xintercept=mean(count),color="mean"), 
                  linetype="dashed", size=0.5)+
   scale_color_manual(name = "Statistics", 
-                     values = c(median = "skyblue1", mean = "pink1",Mode="blue"))+
+                     values = c(median = "blue", mean = "red",Mode="green"))+
   scale_x_log10()+
   ggtitle("movieId Distribution")+ 
   labs(x="Number Of Ratings Count", y="Number of Movies") 
+```
 
+```{r figure 11 graph number of ratings per movie, echo=FALSE}
 # graph number of ratings per movie, see extreme observation
-rate_p_m<- 
-  train_edx %>% 
+train_edx %>% 
   group_by(title) %>%
   summarize(count=n()) %>%
   ggplot(aes(title,count)) +
   geom_point(alpha=0.1)+
-  geom_hline(aes(yintercept=mean(count)),color="pink1", 
+  geom_hline(aes(yintercept=mean(count)),color="red", 
                  linetype="dashed", size=0.5)+
   geom_hline(aes(yintercept=Mode(count, na.rm = FALSE)),
-                 color="blue", linetype="dashed", size=0.5)+
-  geom_hline(aes(yintercept=median(count)),color="skyblue1", 
+                 color="green", linetype="dashed", size=0.5)+
+  geom_hline(aes(yintercept=median(count)),color="blue", 
                  linetype="dashed", size=0.5)+
-  ggtitle("Total Number Of Ratings Per Movie")+ 
+  ggtitle("Total N. Of Ratings Per Movie")+ 
   labs(x="10,677 Unique Movies", y="Total Ratings Per Movie") + 
   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
-
-# plot 2 graphs - place multiple grobs on a page
-grid.arrange(rate_p_m, movie_hist, ncol=2)
 ```
 
 ```{r movie rating dist quantiles, include=FALSE}
@@ -730,14 +725,15 @@ train_edx %>%
   **2. Model 2 - Modeling Movie Effect**
 
   <TODO> explanations
-  * Fit the model
+  
+  * Fit the model;
 ```{r fit movie ave}
 fit_movie_ave <- 
   train_edx %>% 
   group_by(movieId) %>% 
   summarize(b_i = mean(rating - mu))
 ```
-  * Predict the rarings - how much our prediction improves once using y=mu+b_i
+  * Predict the rarings - how much our prediction improves once using y=mu+b_i;
 ```{r movie predicted ratings}
 predicted_ratings <- 
   test_edx %>% 
@@ -753,7 +749,7 @@ movie_b_i <-
   ggplot(aes(b_i))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("")+
+  ggtitle("b_i distribution")+
   labs(x="b_i", y="number of movies")
 
 # plot the movie predicted rating
@@ -766,7 +762,7 @@ movie_predicted_ratings <-
   ggplot(aes(predicted))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mu),color="red", linetype="dashed", size=0.5)+
-  ggtitle("Rating score dist. by number of movies")+ 
+  ggtitle("Rating score dist. by n. of movies")+ 
   labs(x="predicted Rating score", y="number of movies")
 
 # plot 2 graphs together
@@ -787,7 +783,7 @@ model_2_results
 ```
 We obtain RMSE=0.9439868, improvement of 11% from the naice mosel RMSE
 
-  * The model mean squared errors
+  * The model mean squared errors;
 ```{r figure 15 plot movie mse, echo=FALSE}
 test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>% 
@@ -802,7 +798,7 @@ test_edx %>%
   ggtitle("User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of movies")
 ```
-
+  * The model mean squared errors summary; 
 ```{r se movie summary}
 test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>% 
@@ -907,6 +903,7 @@ When n_i is small, the values are shrinking more toward zero.
   **1. Model 3 - Modeling Movie + User effect**
 
 <TODO> explanations
+
   * Fit the model
 ```{r fit movie user ave}
 fit_user_movie_ave <- 
@@ -956,7 +953,7 @@ test_edx %>%
   ggtitle("Movie + User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of movies")
 ```
-
+  * The model squared errors summary 
 ```{r se movie+user, echo=FALSE}
 test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>%
@@ -1055,6 +1052,8 @@ model_3_1_results <- tibble(method = "Reg. Movie + User Effect",
 model_3_1_results
 ```
 The penalized model obtain RMSE = 0.8659649
+
+  * The model reg squared errors summary
 ```{r reg movie user squared errors summary, echo=FALSE}
 test_edx %>%
   left_join(fit_reg_movie_ave, by='movieId') %>%
@@ -1087,7 +1086,7 @@ we will model the effect of the age of the movie on the user.
 
 We also need to rememmber that a movie can be rated multiple times by different users at different years. 
 
-Age of a movie at tating summary; 
+Age of a movie at rating summary; 
 ```{r age summarize, echo=FALSE}
 train_edx %>% 
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
@@ -1356,7 +1355,7 @@ test_edx %>%
   select(reg_squared_errors) %>% 
   summary()
 ```
-  * The mean squared residual distribution; 
+  * The mean squared residual distribution 
 ```{r figure 24 user age mse plot, echo=FALSE}
 test_edx %>%
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
@@ -1370,7 +1369,7 @@ test_edx %>%
   ggplot(aes(mse))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
-  ggtitle("")+ 
+  ggtitle("User + Age at rating model MSE dist. ")+ 
   labs(x="Mean squared errors", y="number of users")
 ```
 The model MSE distribution show long right tail that indicate low accuracy. 
@@ -1390,8 +1389,8 @@ tibble(Year = c("Release", "rate"),
   **1. Release year**
 
 The number of ratings for each movie against the year the movie came out
-(Each point represent different movie); 
-```{r figur 24 number of rating per movie over time, echo=FALSE, out.width = '100%'}
+(Each point represent different movie);
+```{r figur 25 number of rating per movie over time, echo=FALSE, out.width = '80%'}
 
 train_edx %>% 
   group_by(movieId) %>% 
@@ -1511,7 +1510,7 @@ We define d_ui as the day for user's u rating of movie i.
 
 The model; <TODO>
 
-  * Fit the model;
+  * Fit the model
 ```{r fit time model} 
 fit_time_ave <-  
   train_edx %>% 
@@ -1521,7 +1520,7 @@ fit_time_ave <-
   group_by(week) %>%
   summarize(d_ui=mean(rating-mu-reg_b_i-reg_b_ui))
 ```
-  * Predict the ratings;
+  * Predict the ratings
 ```{r predict time model}
 predicted_ratings <- 
   test_edx %>% 
@@ -1532,7 +1531,7 @@ predicted_ratings <-
   mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui) %>%
   pull(predicted)
 ```
-  * Model results;
+  * Model results
 ```{r model 5 results}
 model_5_rmse <- RMSE(true_ratings=test_edx$rating,
                      predicted_ratings=predicted_ratings)
@@ -1544,7 +1543,7 @@ model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
                           MSE=model_5_mse, RMSE = model_5_rmse)
 model_5_results
 ```
-  * The residual summary as shown; 
+  * The residual summary as shown
 ```{r time effect model residual summary, echo=FALSE}
 test_edx %>% 
   mutate(week = round_date(rate_date, unit = "week")) %>%
@@ -1556,7 +1555,7 @@ test_edx %>%
   select(reg_squared_errors) %>% 
   summary()
 ```
-  * The model MSE distribution;   
+  * The model mean squared errors distribution  
 ```{r figure 30 time effect model MSE distribution, echo=FALSE}
 test_edx %>% 
   mutate(week = round_date(rate_date, unit = "week")) %>%
@@ -1570,7 +1569,7 @@ test_edx %>%
   ggplot(aes(mse))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
-  ggtitle("")+ 
+  ggtitle("User+Movie+Time effect model MSE dist.")+ 
   labs(x="Mean squared errors", y="number of movies")
 ```
 The model obtain RMSE= 0.8658609, improvement of 18.31501 from the naive RMSE and just 0.01% improvement from the regularized movie and user effect model. 
@@ -1670,7 +1669,7 @@ We define g_u_i as the genre for user's u rating of movie i
 
 The model; 
 
-  * Fit the model; 
+  * Fit the model
 ```{r fit geners model}
 fit_genres_ave <-  
   train_edx_genres %>% 
@@ -1681,7 +1680,7 @@ fit_genres_ave <-
   group_by(genres) %>%
   summarize(b_g=mean(rating-mu-reg_b_i-reg_b_ui-d_ui))
 ```
-  * Predict the ratings;
+  * Predict the ratings
 ```{r predict geners model ratings}
 predicted_ratings <- 
   test_edx_genres %>% 
@@ -1706,7 +1705,7 @@ model_6_results <-
          MSE=model_6_mse, RMSE = model_6_rmse)
 model_6_results
 ```
-  * The model mean squared error distribution;
+  * The model mean squared error distribution
 ```{r figure 34 model 6 mse plot, echo=FALSE}
 
 test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
@@ -1721,7 +1720,7 @@ test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
   ggplot(aes(mse))+
   geom_histogram(bins=30, color="black")+
   geom_vline(aes(xintercept=mean(mse)),color="red", linetype="dashed", size=0.5)+
-  ggtitle("7")+ 
+  ggtitle("Model 6 MSE dist.")+ 
   labs(x="Mean squared errors", y="number of movies")
 ```
 
@@ -1741,8 +1740,7 @@ rbind(naive_model_results,
       model_3_1_results,
       model_4_results, 
       model_5_results,
-      model_6_results, 
-      model_final_results) %>%
+      model_6_results) %>%
   arrange(MSE)
 ```
   **1. Data Preparation**
@@ -1757,7 +1755,7 @@ test_validation <-
 ```
   **2. Final Model**
 
-  * Fit the model;
+  * Fit the model
 ```{r fit final model}
 fit_genre_ave <-  
   train_edx_genres %>% 
@@ -1768,7 +1766,7 @@ fit_genre_ave <-
   group_by(genres) %>%
   summarize(b_g=mean(rating-mu-reg_b_i-reg_b_ui-d_ui))
 ```
-  * Predict the ratings; 
+  * Predict the ratings 
 ```{r predict ratings validation set }
 predicted_ratings <- 
   test_validation %>% 
@@ -1780,7 +1778,7 @@ predicted_ratings <-
   mutate(predicted = mu+reg_b_i+reg_b_ui+d_ui+b_g) %>%
   pull(predicted)
 ```
-  * Final model results;
+  * Final model results
 ```{r final model results }
 model_final_rmse <- RMSE(true_ratings=test_validation$rating,
                          predicted_ratings=predicted_ratings)
