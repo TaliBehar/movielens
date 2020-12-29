@@ -48,6 +48,10 @@ colnames(movies) <- c("movieId", "title", "genres")
 movies <- as.data.frame(movies) %>% mutate(movieId = as.numeric(levels(movieId))[movieId],
                                           title = as.character(title),
                                          genres = as.character(genres))
+# if using R 4.0 or later:
+#movies <- as.data.frame(movies) %>% mutate(movieId = as.numeric(movieId),
+#                                            title = as.character(title),
+#                                            genres = as.character(genres))
 
 movielens <- left_join(ratings, movies, by = "movieId")
 
@@ -79,12 +83,12 @@ glimpse(edx)
 # convert timestamp into rate date, add rate year column, extract the release year from the movie title, 
 # delete release year from movie title
 
-#edx_year_sanitized <- edx %>% 
-#  mutate(rate_year = year(as_datetime(timestamp)),
-#          rate_date = date(as_datetime(timestamp)),
-#          release_year =as.numeric(str_extract(title, "(?<=\\()(\\d{4})(?=\\))")),
-#          title= str_remove(as.character(title),"(\\(\\d{4}\\))")) %>% 
-#  select(-timestamp)
+edx_year_sanitized <- edx %>% 
+  mutate(rate_year = year(as_datetime(timestamp)),
+          rate_date = date(as_datetime(timestamp)),
+          release_year =as.numeric(str_extract(title, "(?<=\\()(\\d{4})(?=\\))")),
+          title= str_remove(as.character(title),"(\\(\\d{4}\\))")) %>% 
+  select(-timestamp)
 
 # Get a glimpse of the sanitized data  
 glimpse(edx_year_sanitized)
