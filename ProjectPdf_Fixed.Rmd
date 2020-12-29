@@ -341,9 +341,32 @@ rm(temp, removed)
 
 **B. RMSE function**
 
-  * <TODO> EXPLANATIONS
+  * **MSE Function**
+  
+      The MSE measures the average of the squares of the errors that is, the average squared difference between the estimated values and the actual value. Therefore, is a measure of the quality of an estimator it is always non-negative, and values closer to zero are better.
 
-  * The function that computes the RMSE for vectors of ratings and their corresponding predictors; 
+$$ MSE = {\frac{1}{N}\displaystyle\sum_{u,i} (\hat{y}_{u,i}-y_{u,i})^{2}} $$
+
+  * **RMSE** is a good measure of how accurately the model predicts the response, and it is the most important criterion for fit if the main purpose of the model is prediction.
+
+    Lower values of RMSE indicate better fit.
+    
+    RMSE  square the residual, and is affected by outliers. 
+
+    The RMSE is analogous to the standard deviation (MSE to variance) and is a measure of how large the residuals are spread out.
+
+
+* We define $y_{u,i}$ as the rating for movie i by user u and denote our prediction with $\hat{y}_{u,i}$. The RMSE is then defined as; 
+
+$$ RMSE = \sqrt{\frac{1}{N}\displaystyle\sum_{u,i} (\hat{y}_{u,i}-y_{u,i})^{2}} $$
+
+$$ RMSE = \sqrt{MSE} $$
+
+  * N - the number of user/movie combinations and the sum occurring over all of these combinations.
+
+  * If the RMSE is larger than 1, it means our typical error is larger than one star.
+
+  * The function that computes the RMSE for vectors of ratings and their corresponding predictors;  
   
 ```{r RMSE function}
 RMSE <- function(true_ratings, predicted_ratings){
@@ -353,8 +376,19 @@ RMSE <- function(true_ratings, predicted_ratings){
 
 **C. Naive Model** 
 
-  **1. <TODO> EXPLANATIONS**
+  **1. The model**
 
+The naive model is the simplest possible recommendation system that predicts the same rating for all movies regardless of the user preferences.
+
+The naive model takes into account a similar rating for all movies and users, and the differences are explained by random variation which will be defined by:
+
+$$ Y_{u, i} = \mu + \epsilon_{u, i} $$
+
+$\epsilon_{u,i}$ ; independent errors sampled from the same distribution centered at 0.
+
+$\mu$ ; true rating for all movies
+
+The estimate that minimizes the RMSE is the least squares estimate of $\mu$ and which is the $\hat{mu}$ : the average rating of all movies across all users
 
 ```{r mu hat}
 mu_hat <- mean(train_edx$rating)
@@ -363,7 +397,7 @@ mu_hat
 
   **2. The model results**
   
-if we predict all unknown ratings with mu we obtain the following RMSE 
+if we predict all unknown ratings with $\mu$ we obtain the following RMSE 
 ```{r naive_rmse}
 naive_rmse <- RMSE(test_edx$rating, mu_hat)
 naive_mse <- MSE(test_edx$rating, mu_hat)
@@ -453,11 +487,22 @@ train_edx %>%
 
   **2. Model 1 - Modeling User Effect**
 
+the previous analysis showed that users are rating different from each other. 
+also, some are very active while others rarely active.  
+
+We can augment the naive model by adding the term $b_{u}$ to represent average ranking by user u:
+$$ Y_{u, i} = \mu + \ b_{u} + \epsilon_{u, i} $$
+
+$b_{u}$ - the user specific effect/"bias" ; average rating by user u regardless of movie i
+
+we can compute the predicted ratings using the next; 
+$$\hat{b_{u}}= mean(y_{u, i}-\hat{mu})$$ 
+since the least squares estimate $b_{u}$ is just the average of $y_{u, i}-\hat{mu}$ for each user u.
 
 ```{r mu}
 mu <- mean(train_edx$rating)
 ```
-  * Fit the model; 
+  * Fit the model
 ```{r b_u}
 fit_user_ave <- 
   train_edx %>% 
@@ -540,10 +585,44 @@ test_edx %>%
   select(squared_errors) %>% 
   summary()
 ``` 
+The large distribution of the errors in the plot, with the heavy right tail, and MSE closer to 1 indicate low accuracy. 
 
   **3. Model 1.1 - Modeling Reg. User Effect**
 
   **Regularization**
+  
+As mentioned before, RMSE is sensetive to outliers. 
+
+outliers can be interuped ab b's "mistakes" -
+
+  * Users (with more than average ratings) that systematically rates only 1 stars or only 5 stars 
+  
+  * movies that have only one rating and scored 5 stars will apear as "best" movie, the same for "worst" (1 rating of 1 star). 
+
+The supposed "best" and "worst" movies were rated by very few users, in most cases just 1. This is because with just a few users, we have more uncertainty. Therefore, larger estimates of b's, negative or positive, are more likely.
+
+These are noisy estimates that we should not trust, especially when it comes to prediction.
+
+Large errors can increase our RMSE, so we would rather be conservative when unsure.
+
+Regularization permits us to penalize large estimates that are formed using small sample sizes.
+
+The general idea is to add a penalty for large values of b's to the sum of squars equation that we minimize, since having many large b's makes it harder to minimize the equation that were trying to minimize. 
+
+We control the total variability of the user effects Specifically, instead of minimizing the least squares equation, we minimize an equation that adds a penalty:
+
+$$ {\frac{1}{N}\displaystyle\sum_{u,i} ({y}_{u,i}-{\mu}-b_{u,i})^{2}}+{\lambda}\displaystyle\sum_{u,i}{b_{u,i}^{2}} $$
+
+The first term is just least squares and the second is a penalty that gets larger when many b's are large. Using calculus we can actually show that the values of bi that minimize this
+equation are: 
+
+$$\hat{b_{i}}({\lambda})= \frac{1}{\lambda+n_{i}}\displaystyle\sum_{u} ({y}_{u,i}-{\hat{mu}})$$
+
+where $n_{i}$ is the number of ratings made for movie i. 
+
+This approach will have our desired effect: when our sample size $n_{i}$ is very large, a case which will give us a stable estimate, then the penalty is effectively ignored since . 
+
+However, when the $n_{i}$ is small, then the estimate is shrunken towards 0. The larger, the more we shrink.
 
 lambda is a tuning parameter. we will use cross-validation to choose it. 
 we'll create additional partition of the training for cross validation, pick the lambda and evaluate the performance on the previos train+test. 
@@ -571,6 +650,11 @@ removed <- anti_join(temp, test_edx_cv)
 train_edx_cv <- rbind(train_edx_cv, removed)
 rm(temp, removed)
 ```
+  * The model will look like this:
+
+$$ Y_{u, i} = \mu + \ {\lambda}b_{u} + \epsilon_{u, i} $$
+${\lambda}$ = Penalty term
+
   * Choosing penalty term (lambda) for user effect;
 ```{r lambda for user effect}
 equation_mu <- mean(train_edx_cv$rating)
@@ -724,7 +808,17 @@ train_edx %>%
 
   **2. Model 2 - Modeling Movie Effect**
 
-  <TODO> explanations
+We can augment the naive model by adding the term $b_{i}$ to represent average ranking for movie i:
+
+$$ Y_{u, i} = \mu + \ b_{i} + \epsilon_{u, i} $$
+
+$b_{i}$ - the movie specific effect/"bias" ;  average rating for movie i regardless of user
+
+we can compute the predicted ratings using the next; 
+
+$$\hat{b_{i}}= mean(y_{u, i}-\hat{mu})$$ 
+
+since the least squares estimate $b_{i}$ is just the average of $y_{u, i}-\hat{mu}$ for each movie i.
   
   * Fit the model;
 ```{r fit movie ave}
@@ -811,6 +905,12 @@ test_edx %>%
 The squared errors distribution is large, which indicate low accuracy. The mse distribution tail quite shorter than the User effect model, but can be improved by penalize the outliers. 
 
   **3. Model 2.1 - Modeling Reg. Movie Effect**
+  
+  * The model will look like this:
+
+$$ Y_{u, i} = \mu + \ {\lambda}b_{i} + \epsilon_{u, i} $$
+${\lambda}$ = Penalty term
+
   
   * Choosing penalty term (lambda) for movie effect
 
@@ -902,7 +1002,19 @@ When n_i is small, the values are shrinking more toward zero.
 
   **1. Model 3 - Modeling Movie + User effect**
 
-<TODO> explanations
+Modeling the movie effect and the user effect seperatly did not offer more than 7%-10% of improvement to the naive RMSE. 
+
+common sense tells that althogh each one has its own effect, ussers tend to watch and rate movies for a reason. 
+
+Therefore it is much right to medel them together. 
+
+The model will look like this:
+
+$$ Y_{u, i} = \mu + \ b_{i}+b_{u,i} + \epsilon_{u, i} $$
+
+$b_{u,i}$ - average rating for movie i with user specific effect.
+
+in this case, if a cranky user (= negative $b_{u,i}$) rates a great movie (= positive $b_{i}$ ), the effects counter each other and we may be able to correctly predict that this user gave this great movie a 3 rather than a 5, and that should improve our prediction.
 
   * Fit the model
 ```{r fit movie user ave}
@@ -968,6 +1080,12 @@ Althogh we saw RMSE improvement, the squared error shows large distribution.
 we will try to "fix" it by the penalizing and reduse very large absulute values of b_i and b_u_i
 
   **2. Model 3.1 - Modeling Reg. Movie + User effect**
+  
+  * The model will look like this:
+
+$$ Y_{u, i} = \mu + \ {\lambda}(b_{i}+b_{u,i}) + \epsilon_{u, i} $$
+
+${\lambda}$ = Penalty term
   
   * Choosing penalty term (lambda) for movie + user effect
 ```{r model 3.1 penalty term}
@@ -1241,9 +1359,9 @@ each movie rated several times over the years.
 
 Previous analysis on the user effect taught us that the model shuold be penalized, also, the analysis on the age at rating indicate of large variation between the rating counts and the rating scores.
 
-The model <TODO> WRITE THE MODEL FORM
-
-b_a- <TODO>
+The model will look like this:
+$$ Y_{u, i} = \mu + \ {\lambda}b_{u}+b_{a} + \epsilon_{u, i} $$
+$b_{a}$ - average rating of a movie based on his age at rating.
 
 We'll choose penalize model in advance; 
 
@@ -1341,7 +1459,7 @@ model_4_results <-
           MSE=model_4_mse, RMSE = model_4_rmse)
 model_4_results
 ```
-The penalized model obtain RMSE 0.9712367, improvement of only 8.3 than the naive model and only 1% better than the user effect model. 
+The penalized model obtain RMSE 0.9712367, improvement of only 8.3% than the naive model and only 1% better than the user effect model. 
 
   * The residual summary as shown; 
 ```{r reg user age squared errors summary, echo=FALSE}
@@ -1508,7 +1626,11 @@ We'll create a model that add a time effect to the regularized movie and user jo
 
 We define d_ui as the day for user's u rating of movie i. 
 
-The model; <TODO>
+The model will look like this:
+
+$$ Y_{u, i} = \mu + \ {\lambda}(b_{i}+b_{u,i}) + f(d_{u,i}) + \epsilon_{u, i} $$
+
+${f}$ a smooth function of $d_{u,i}$, since time is continuous
 
   * Fit the model
 ```{r fit time model} 
@@ -1572,7 +1694,7 @@ test_edx %>%
   ggtitle("User+Movie+Time effect model MSE dist.")+ 
   labs(x="Mean squared errors", y="number of movies")
 ```
-The model obtain RMSE= 0.8658609, improvement of 18.31501 from the naive RMSE and just 0.01% improvement from the regularized movie and user effect model. 
+The model obtain RMSE= 0.8658609, improvement of 18.31501% from the naive RMSE and just 0.01% improvement from the regularized movie and user effect model. 
 
 The time effect is beraly significant. 
 
@@ -1665,9 +1787,12 @@ The analysis shows evidance of genre effect. We'll add the effect to our previou
 
   **2. Model 6 - Reg. Movie + User Effect + Time Effect + Genres Effect** 
 
-We define g_u_i as the genre for user's u rating of movie i
+The model will look like this:
 
-The model; 
+$$ Y_{u, i} = \mu + \ {\lambda}(b_{i}+b_{u,i}) + f(d_{u,i}) + \displaystyle\sum_{k=1}^K{x_{u,i}{\beta_{k}}} +\epsilon_{u, i} $$
+${x_{u,i}^k=1}$ if ${g_{u,i}}$ is genre k
+
+We simply define ${b_{g}}$ as the unique genre effect (average rating of the genre) correspondent with movie i
 
   * Fit the model
 ```{r fit geners model}
