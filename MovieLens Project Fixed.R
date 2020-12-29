@@ -35,11 +35,6 @@ library(formattable)
 
 ### 3.Create Edx set (training set) and Validation Sets (final hold-out test set)
 
-#### Use a shortcut to load the data from local computer
-
-#load("D:/OneDrive/Documents/Tali/Tali data science studies/movielens_dataset/movielens_dataset_fixed.RData")
-####
-
 dl <- tempfile()
 download.file("http://files.grouplens.org/datasets/movielens/ml-10m.zip", dl)
 
