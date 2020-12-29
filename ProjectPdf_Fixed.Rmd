@@ -91,12 +91,15 @@ The desired RMSE goal we get is **RMSE < 0.8649**
 
 ## Model Results 
 
-The chosen model was test on the validation set and resulted in X <FILL>
-<TABLE>
+The chosen model was test on the validation set and resulted in **RMSE = 0.8632**
 
 ## Conclusion
 
-The chosen model is the one that adds the genres and time effect to the average rating for a movie i and the specific effect of user u.
+The most accurate model is the one that took into account all the features: 
+
+Reg. Movie + User Effect + Time Effect + Genres Effect 
+
+The test validation showed even better results than the results we obtained while training the model, which means that the algorithm can act standalone in the future.
 
 # Data Preperation
 
@@ -1927,7 +1930,7 @@ The test validation showed even better results than the results we obtained whil
 
   * Future work: we can further add more personalized info on the user, such as age, sex, origin in order to make the model even more accurate.
   
-  * Limitations: the dataset size impacted our ability to try and fit more targeted models such as KNN and Matrix Factorization, simply because our peronal computer couldn't handle the load. From the same reasons, it was also challenging to run statistical queries on our current model. Running these in a cloud computing environemtn would simplify this process.
+  * Limitations: the dataset size impacted our ability to try and fit more targeted models such as KNN and Matrix Factorization, simply because our peronal computer couldn't handle the load. From the same reasons, it was also challenging to run statistical queries on our current model. Running these in a cloud computing environment would simplify this process.
 
 
 
