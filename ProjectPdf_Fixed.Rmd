@@ -17,9 +17,9 @@ knitr::opts_chunk$set(echo = TRUE, fig.align="center", out.width = '65%',
 
 ## Overview
 
-Recommendation systems are the systems that are designed to recommend things to the user based on many different factors.
+Recommendation systems are systems that are designed to recommend things to the user based on many different factors.
 
-The goal of a recommender system is to generate meaningful recommendations, by predict the "rating" or "preference" a user would give to an item, to a collection of users for items or products that might interest them. 
+The goal of a recommender system is to generate meaningful recommendations by learning the user preferences and predicting the rating a user would give to an item. Then project that learning on future users of the system as well, in a way that keeps improving over time.
 
 Suggestions for books on Amazon, or movies on Netflix, are real-world examples of the operation of industry-strength recommender systems. 
 
@@ -63,11 +63,11 @@ The goal of the project is to analyze movie i characteristics that can affect th
 
   * **Mean**: average of all rated movies in the system, regardless of the user
   
-  * **User**: users are different with their personal preferences, as well as in them engagement and excitement level. We’ll check the user specific effect on the mean.
+  * **User**: users are different with their personal preferences, as well as in their engagement and excitement level. We’ll check the user specific effect on the mean.
   
   * **Movie**: some movies tend to get rated higher on average than others (regardless of the user).we’ll check the movie specific effect on the mean. 
   
-  * **Movie age**: older movies tend to be rated higher than new movies. We’ll check how the age of the movie effect on the user ratings. 
+  * **Movie age**: older movies tend to be rated higher than new movies. We’ll check how the age of the movie affect the user ratings. 
   
   * **Time effect**: newer movies have less ratings than older movies. We’ll use that by adding the time effect to the average rating for movie i and the specific effect of user u.
   
@@ -79,13 +79,13 @@ The goal of the project is to analyze movie i characteristics that can affect th
   
   * Divide “edx”  randomly to train and test set in order to train and examine the different models.
   
-  * Penalize outliers - cross validation in order to find penalty term- diving the data once againin order to prevent overfiting
+  * Penalize outliers - cross validation in order to find penalty term- diving the data once again in order to prevent overfiting
 
 ## Model Estimation
 
 Evaluate model performance based on RMSE (Root Mean Square Error).
 
-RMSE is the standard deviation of the residuals (prediction errors).Residuals are a measure of how far from the regression line data points are. RMSE is a measure of how spread out these residuals are. In other words, it tells you how concentrated the data is around the line of best fit.
+RMSE is the standard deviation of the residuals (prediction errors). Residuals are a measure of how far from the regression line data points are. RMSE is a measure of how spread out these residuals are. In other words, it tells you how concentrated the data is around the line of best fit.
 
 The desired RMSE goal we get is **RMSE < 0.8649**
 
@@ -259,7 +259,7 @@ edx_year_sanitized %>%
 ```
 The average rate score is 3.512 stars while both median and mode rate score is 4 stars (distribution is negatively skewed).
 
-About 2.5 milion ratings, which is 29 percent of the total ratings, are 4 stars and only 41 percent of the ratings is 3 stars and less.
+About 2.5 milion ratings, which is 29% of the total ratings, are 4 stars and only 41% of the ratings is 3 stars and less.
 
 In general, whole star ratings are more common than half star ratings, and are 79.5 percent of the total ratings, as shown in the next plot. 
 ```{r figure 2 graph rating score distribution, echo=FALSE}
@@ -297,7 +297,7 @@ The plot above demonstrates the top 15 blockbuster movies with overall number of
 The top leader is Pulp Fiction, directed by Quentin Tarantino, and was released on 1994.
 
 
-**The challenge of recommendation systems**
+  **The challenge of recommendation systems**
 
 Since our goal is to predict the future ratings, we can treat this as a machine learning challenge and "fill" the empty cells from the above matrix.
 
@@ -336,22 +336,22 @@ rm(temp, removed)
 
   * **MSE Function**
   
-      The MSE measures the average of the squares of the errors that is, the average squared difference between the estimated values and the actual value. Therefore, is a measure of the quality of an estimator it is always non-negative, and values closer to zero are better.
+      The MSE measures the average of the squares of the errors that is, the average squared difference between the estimated values and the actual value. Therefore, is a measure of the quality of an estimator, it is always non-negative, and values closer to zero are better.
 
-$$ MSE = {\frac{1}{N}\displaystyle\sum_{u,i} (\hat{y}_{u,i}-y_{u,i})^{2}} $$
+$$ MSE = {\frac{1}{N}\displaystyle\sum_{u,i}^n (\hat{y}_{u,i}-y_{u,i})^{2}} $$
 
   * **RMSE** is a good measure of how accurately the model predicts the response, and it is the most important criterion for fit if the main purpose of the model is prediction.
 
     Lower values of RMSE indicate better fit.
     
-    RMSE  square the residual, and is affected by outliers. 
+    RMSE squares the residual, and is affected by outliers.
 
     The RMSE is analogous to the standard deviation (MSE to variance) and is a measure of how large the residuals are spread out.
 
 
 * We define $y_{u,i}$ as the rating for movie i by user u and denote our prediction with $\hat{y}_{u,i}$. The RMSE is then defined as; 
 
-$$ RMSE = \sqrt{\frac{1}{N}\displaystyle\sum_{u,i} (\hat{y}_{u,i}-y_{u,i})^{2}} $$
+$$ RMSE = \sqrt{\frac{1}{N}\displaystyle\sum_{u,i}^n (\hat{y}_{u,i}-y_{u,i})^{2}} $$
 
 $$ RMSE = \sqrt{MSE} $$
 
@@ -395,10 +395,10 @@ if we predict all unknown ratings with $\mu$ we obtain the following RMSE
 naive_rmse <- RMSE(test_edx$rating, mu_hat)
 naive_mse <- MSE(test_edx$rating, mu_hat)
 
-#creating results table with naive approach
+#creating results table
 naive_model_results <- tibble(method = "Average only",
                               MSE=naive_mse, RMSE = naive_rmse)
-naive_model_results
+naive_model_results %>% knitr::kable()
 ```
 
 The RMSE we got is 1.06, which means our typical error is larger than one star, which is not good enough! 
@@ -418,7 +418,7 @@ train_edx %>%
             min=min(count), max=max(count)) %>%
   knitr::kable()
 ```
-Each of the 70K different usesrs rated in average 103 different movies. The most frequent value of ratings is only 17 movies, but there are 3% of users who rated more than 500 movies! 
+Each of the 70K different usesrs rated in average 103 different movies. The most frequent value of ratings is only 17 movies, but there are 3% users who rated more than 500 movies! 
 
 The distribution is positively skewed, as the mean is larger than the mode and median.
 
@@ -480,7 +480,7 @@ train_edx %>%
 
 ### Model 1 - Modeling User Effect
 
-the previous analysis showed that users are rating different from each other. 
+The previous analysis showed that users are rating different from each other. 
 also, some are very active while others rarely active.  
 
 We can augment the naive model by adding the term $b_{u}$ to represent average ranking by user u:
@@ -547,8 +547,9 @@ model_1_rmse <- RMSE(true_ratings=test_edx$rating,
 model_1_mse <- MSE(test_edx$rating,predicted_ratings)
 
 #add the results to the table 
-model_1_results <- tibble(method = "User Effect",MSE=model_1_mse, RMSE = model_1_rmse)
-model_1_results 
+model_1_results <- tibble(method = "User Effect",
+                          MSE=model_1_mse, RMSE = model_1_rmse)
+model_1_results %>% knitr::kable() 
 ```
 we obtain RMSE = 0.9791, only 8% improvement from the naive model. 
 
@@ -586,9 +587,9 @@ The large distribution of the errors in the plot, with the heavy right tail, and
   
 As mentioned before, RMSE is sensetive to outliers. 
 
-outliers can be interuped ab b's "mistakes" -
+outliers can be interuped as b's "mistakes" -
 
-  * Users (with more than average ratings) that systematically rates only 1 stars or only 5 stars 
+  * Users that systematically rates only 1 stars or only 5 stars 
   
   * movies that have only one rating and scored 5 stars will apear as "best" movie, the same for "worst" (1 rating of 1 star). 
 
@@ -707,7 +708,7 @@ model_1_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 # add the results to the table 
 model_1_1_results <- tibble(method = "Reg. User Effect",
                             MSE=model_1_1_mse, RMSE = model_1_1_rmse)
-model_1_1_results
+model_1_1_results %>% knitr::kable()
 ```
   * Model 1.1 squared error summarize 
 ```{r reg se user}
@@ -738,9 +739,9 @@ train_edx %>%
 ```
 In average, each one of the 10.6k different movies get rated 674 times.
 
-the movies most frequently gets only 1 ratings, but there are exeptional like "Pulp Fiction" that got rated 3734% (!!!) more than average with 25169 users ratings.
+the movies most frequently gets only 1 ratings, but there are exeptional like "Pulp Fiction" that got rated 3734% (!) more than average with 25169 users ratings.
 
-the distribution is positively skewed, like the user activity dist as the mean is larger than the mode and median.
+the distribution is positively skewed, like the user activity dist., as the mean is larger than the mode and median.
 ```{r figure 10 graph number of rating dist. by number of movies, echo=FALSE}
 # graph number of rating dist. by number of movies 
 train_edx %>% 
@@ -786,8 +787,8 @@ train_edx %>%
 ```
 Some movies are just generally rated higher than others. 
 
-50% of the ratints are between 2.8 to 3.6 stars. very few gets prefect 5 srars
-Respectively very few got the shady 1 star. 
+50% of the ratints are between 2.8 to 3.6 stars. very few gets prefect 5 srars,
+respectively very few got the shady 1 star. 
 ```{r figure 12 movie rating dist, echo=FALSE}
 train_edx %>% 
   group_by(movieId) %>% 
@@ -813,14 +814,14 @@ $$\hat{b_{i}}= mean(y_{u, i}-\hat{mu})$$
 
 since the least squares estimate $b_{i}$ is just the average of $y_{u, i}-\hat{mu}$ for each movie i.
   
-  * Fit the model;
+  * Fit the model
 ```{r fit movie ave}
 fit_movie_ave <- 
   train_edx %>% 
   group_by(movieId) %>% 
   summarize(b_i = mean(rating - mu))
 ```
-  * Predict the rarings - how much our prediction improves once using y=mu+b_i;
+  * Predict the rarings - how much our prediction improves once using y=mu+b_i
 ```{r movie predicted ratings}
 predicted_ratings <- 
   test_edx %>% 
@@ -866,11 +867,11 @@ model_2_mse <- MSE(test_edx$rating,predicted_ratings)
 #add the results to the table 
 model_2_results <- tibble(method = "Movie Effect",
                           MSE=model_2_mse, RMSE = model_2_rmse)
-model_2_results
+model_2_results %>% knitr::kable()
 ```
 We obtain RMSE=0.9439868, improvement of 11% from the naice mosel RMSE
 
-  * The model mean squared errors;
+  * The model mean squared errors
 ```{r figure 15 plot movie mse, echo=FALSE}
 test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>% 
@@ -885,7 +886,7 @@ test_edx %>%
   ggtitle("User Effect model squared errors")+ 
   labs(x="Mean squared errors", y="number of movies")
 ```
-  * The model mean squared errors summary; 
+  * The model mean squared errors summary
 ```{r se movie summary}
 test_edx %>% 
   left_join(fit_movie_ave, by='movieId') %>% 
@@ -965,7 +966,7 @@ model_2_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 #add the results to the table 
 model_2_1_results <- tibble(method = "Reg. Movie Effect",
                             MSE=model_2_1_mse, RMSE = model_2_1_rmse)
-model_2_1_results
+model_2_1_results %>% knitr::kable()
 ```
 The penalized model obtain RMSE= 0.9439218. there is no improvement with the penalty term. 
 ```{r se movie}
@@ -987,9 +988,9 @@ data_frame(original = fit_movie_ave$b_i,
   ggplot(aes(original, regularlized, size=sqrt(n))) + 
   geom_point(shape=1, alpha=0.5) 
 ```
-The size of the circle represent the size of n_i (count of ratings). 
+The size of the circle represent the size of $n_{i}$ (count of ratings). 
 
-When n_i is small, the values are shrinking more toward zero. 
+When $n_{i}$ is small, the values are shrinking more toward zero. 
 
 ## movieId and userId
 
@@ -1007,7 +1008,7 @@ $$ Y_{u, i} = \mu + \ b_{i}+b_{u,i} + \epsilon_{u, i} $$
 
 $b_{u,i}$ - average rating for movie i with user specific effect.
 
-in this case, if a cranky user (= negative $b_{u,i}$) rates a great movie (= positive $b_{i}$ ), the effects counter each other and we may be able to correctly predict that this user gave this great movie a 3 rather than a 5, and that should improve our prediction.
+In this case, if a cranky user (= negative $b_{u,i}$) rates a great movie (= positive $b_{i}$ ), the effects counter each other and we may be able to correctly predict that this user gave this great movie a 3 rather than a 5, and that should improve our prediction.
 
   * Fit the model
 ```{r fit movie user ave}
@@ -1017,7 +1018,7 @@ fit_user_movie_ave <-
   group_by(userId) %>%
   summarize(b_ui = mean(rating - mu - b_i))
 ```
-  * Predict the rarings - how much our prediction improves once using y=mu+bi+b_ui
+  * Predict the rarings - how much our prediction improves once using y=mu+b_i+b_ui
 ```{r movie user predicted ratings}
 predicted_ratings <- 
   test_edx %>% 
@@ -1037,7 +1038,7 @@ model_3_mse <- MSE(test_edx$rating,predicted_ratings)
 #add the results to the table 
 model_3_results <- tibble(method = "Movie + User Effect",
                           MSE=model_3_mse, RMSE = model_3_rmse)
-model_3_results
+model_3_results %>% knitr::kable()
 ```
 The model RMSE= 0.8666408, 18.2% improvement from the naive model. 
 
@@ -1070,7 +1071,7 @@ test_edx %>%
   summary()
 ```
 Althogh we saw RMSE improvement, the squared error shows large distribution. 
-we will try to "fix" it by the penalizing and reduse very large absulute values of b_i and b_u_i
+we will try to "fix" it by the penalizing, and reduse very large absulute values of ${b_{i}}$ and ${b_{u,i}}$
 
 ### Model 3.1 - Modeling Reg. Movie + User effect
   
@@ -1143,7 +1144,7 @@ fit_reg_user_movie_ave <-
 ```
   * Penalized prediction
 ```{r movie+user efect predicted ratings}
-predicted_ratings <- 
+reg_predicted_ratings <- 
   test_edx %>%
   left_join(fit_reg_movie_ave, by='movieId') %>%
   left_join(fit_reg_user_movie_ave, by='userId') %>%
@@ -1153,14 +1154,14 @@ predicted_ratings <-
   * Penalized model results 
 ```{r model 3.1 results}
 model_3_1_rmse <- RMSE(true_ratings=test_edx$rating,
-                       predicted_ratings=predicted_ratings)
+                       predicted_ratings=reg_predicted_ratings)
 
 model_3_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 
 #add the results to the table 
 model_3_1_results <- tibble(method = "Reg. Movie + User Effect",
                             MSE=model_3_1_mse, RMSE = model_3_1_rmse)
-model_3_1_results
+model_3_1_results %>% knitr::kable()
 ```
 The penalized model obtain RMSE = 0.8659649
 
@@ -1430,7 +1431,7 @@ fit_reg_user_age_ave <-
 ```
   * Penalized predicted ratings
 ```{r age predicted rating}
-predicted_ratings <- 
+reg_predicted_ratings <- 
   test_edx %>%
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
   filter(age_at_rating>=0)%>%
@@ -1442,7 +1443,7 @@ predicted_ratings <-
   * Penalized model results 
 ```{r model 4 results}
 model_4_rmse <- RMSE(true_ratings=test_edx$rating,
-                     predicted_ratings=predicted_ratings)
+                     predicted_ratings=reg_predicted_ratings)
 
 model_4_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 
@@ -1450,7 +1451,8 @@ model_4_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 model_4_results <- 
   tibble(method = "Reg. User + Age of the movie at rating Effect",
           MSE=model_4_mse, RMSE = model_4_rmse)
-model_4_results
+model_4_results %>% knitr::kable()
+
 ```
 The penalized model obtain RMSE 0.9712367, improvement of only 8.3% than the naive model and only 1% better than the user effect model. 
 
@@ -1656,7 +1658,8 @@ model_5_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 #add the results to the table 
 model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
                           MSE=model_5_mse, RMSE = model_5_rmse)
-model_5_results
+model_5_results %>% knitr::kable()
+
 ```
   * The residual summary as shown
 ```{r time effect model residual summary, echo=FALSE}
@@ -1821,7 +1824,8 @@ model_6_mse <- MSE(test_edx_genres$rating,predicted_ratings)
 model_6_results <- 
   tibble(method = "Reg. Movie + User Effect + Time Effect + Genres Effect",
          MSE=model_6_mse, RMSE = model_6_rmse)
-model_6_results
+model_6_results %>% knitr::kable()
+
 ```
   * The model mean squared error distribution
 ```{r figure 34 model 6 mse plot, echo=FALSE}
@@ -1847,7 +1851,7 @@ test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
 
 <TODO> EXPLANATION
 
-```{r}
+```{r echo=FALSE}
 ### Models results table
 rbind(naive_model_results,
       model_1_results, 
@@ -1859,7 +1863,8 @@ rbind(naive_model_results,
       model_4_results, 
       model_5_results,
       model_6_results) %>%
-  arrange(MSE)
+  arrange(MSE) %>% knitr::kable()
+
 ```
 ## Data Preparation
 ```{r test validation}
@@ -1906,7 +1911,8 @@ model_final_mse <- MSE(test_validation$rating,predicted_ratings)
 model_final_results <- 
   tibble(method = "final",
          MSE=model_final_mse, RMSE = model_final_rmse)
-model_final_results
+model_final_results %>% knitr::kable()
+
 ```
 
 # Conclusions

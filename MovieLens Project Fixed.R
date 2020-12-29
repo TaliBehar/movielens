@@ -199,7 +199,7 @@ naive_mse <- MSE(test_edx$rating, mu_hat)
 
 #creating results table with naive approach
 naive_model_results <- tibble(method = "Average only",MSE=naive_mse, RMSE = naive_rmse)
-naive_model_results
+naive_model_results %>% knitr::kable()
 # The RMSE we got is 1.06, which means our typical error is larger than one star, which is not good enough! 
 # To remind ourselves, the goal is to aspire for RMSE < 0.8649 
 
@@ -331,7 +331,7 @@ model_1_mse <- MSE(test_edx$rating,predicted_ratings)
 #add the results to the table 
 model_1_results <- tibble(method = "User Effect",
                           MSE=model_1_mse, RMSE = model_1_rmse)
-model_1_results
+model_1_results %>% knitr::kable()
 # we obtain RMSE = 0.9791, only 8% improvement from the naive model
 
 # The model mean squared errors
@@ -442,7 +442,7 @@ model_1_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 # add the results to the table 
 model_1_1_results <- tibble(method = "Reg. User Effect",
                             MSE=model_1_1_mse, RMSE = model_1_1_rmse)
-model_1_1_results
+model_1_1_results %>% knitr::kable()
 
 # Model 1.1 squared error summarize; 
 test_edx %>% 
@@ -583,7 +583,7 @@ model_2_mse <- MSE(test_edx$rating,predicted_ratings)
 #add the results to the table 
 model_2_results <- tibble(method = "Movie Effect",
                           MSE=model_2_mse, RMSE = model_2_rmse)
-model_2_results
+model_2_results %>% knitr::kable()
 
 # We obtain RMSE=0.9439868, improvement of 11% from the naice mosel RMSE
 
@@ -668,7 +668,7 @@ model_2_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 #add the results to the table 
 model_2_1_results <- tibble(method = "Reg. Movie Effect",
                             MSE=model_2_1_mse, RMSE = model_2_1_rmse)
-model_2_1_results
+model_2_1_results %>% knitr::kable()
 
 # The penalized model obtain RMSE= 0.9439218. 
 # there is no improvement with the penalty term. 
@@ -720,7 +720,7 @@ model_3_mse <- MSE(test_edx$rating,predicted_ratings)
 #add the results to the table 
 model_3_results <- tibble(method = "Movie + User Effect",
                           MSE=model_3_mse, RMSE = model_3_rmse)
-model_3_results
+model_3_results %>% knitr::kable()
 
 # The model RMSE= 0.8666408, 18.2% improvement from the naive model. 
 
@@ -811,7 +811,7 @@ fit_reg_user_movie_ave <-
             reg_b_ui=(s/(n_i+penalty_term)))
 
 # Penalized prediction
-predicted_ratings <- 
+reg_predicted_ratings <- 
   test_edx %>%
   left_join(fit_reg_movie_ave, by='movieId') %>%
   left_join(fit_reg_user_movie_ave, by='userId') %>%
@@ -820,14 +820,15 @@ predicted_ratings <-
 
 # Penalized model results
 model_3_1_rmse <- RMSE(true_ratings=test_edx$rating,
-                       predicted_ratings=predicted_ratings)
+                       predicted_ratings=reg_predicted_ratings)
 
 model_3_1_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 
 #add the results to the table 
 model_3_1_results <- tibble(method = "Reg. Movie + User Effect",
                             MSE=model_3_1_mse, RMSE = model_3_1_rmse)
-model_3_1_results
+model_3_1_results %>% knitr::kable()
+
 # The penalized model 3.1 obtain RMSE = 0.8659649
 
 # reg squared errors summary
@@ -1049,7 +1050,7 @@ fit_reg_user_age_ave <-
             s= sum(rating -reg_b_u -mu), 
             reg_b_ua=(s/(n_i+penalty_term)))
 # Penalized predicted ratings
-predicted_ratings <- 
+reg_predicted_ratings <- 
   test_edx %>%
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
   filter(age_at_rating>=0)%>%
@@ -1060,14 +1061,15 @@ predicted_ratings <-
 
 # Penalized model 4 results
 model_4_rmse <- RMSE(true_ratings=test_edx$rating,
-                     predicted_ratings=predicted_ratings)
+                     predicted_ratings=reg_predicted_ratings)
 
 model_4_mse <- MSE(test_edx$rating,reg_predicted_ratings)
 
 #add the results to the table 
 model_4_results <- tibble(method = "Reg. User + Age of the movie at rating Effect",
                             MSE=model_4_mse, RMSE = model_4_rmse)
-model_4_results
+model_4_results %>% knitr::kable()
+
 
 # The penalized model obtain RMSE 0.9712367, improvement of only 8.3 than 
 # the naive model and only 1% better than the user effect model. 
@@ -1238,7 +1240,8 @@ model_5_mse <- MSE(test_edx$rating,predicted_ratings)
 #add the results to the table 
 model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
                           MSE=model_5_mse, RMSE = model_5_rmse)
-model_5_results
+model_5_results %>% knitr::kable()
+
 
 #The residual summary as shown
 test_edx %>% 
@@ -1374,7 +1377,8 @@ model_6_mse <- MSE(test_edx_genres$rating,predicted_ratings)
 model_6_results <- 
   tibble(method = "Reg. Movie + User Effect + Time Effect + Genres Effect",
          MSE=model_6_mse, RMSE = model_6_rmse)
-model_6_results
+model_6_results %>% knitr::kable()
+
 
 # The model mean squared error distribution
 # figure 34 #
@@ -1408,7 +1412,8 @@ rbind(naive_model_results,
       model_4_results, 
       model_5_results,
       model_6_results) %>%
-  arrange(MSE)
+  arrange(MSE) %>% knitr::kable()
+
 
 # 1. Data Preparation 
 test_validation <- 
@@ -1451,8 +1456,9 @@ model_final_mse <- MSE(test_validation$rating,predicted_ratings)
 model_final_results <- 
   tibble(method = "final",
          MSE=model_final_mse, RMSE = model_final_rmse)
-model_final_results
+model_final_results %>% knitr::kable()
 
+ 
 ### Models results table
 rbind(naive_model_results,
       model_1_results, 
@@ -1465,6 +1471,7 @@ rbind(naive_model_results,
       model_5_results,
       model_6_results, 
       model_final_results) %>%
-  arrange(MSE)
+  arrange(MSE) %>% knitr::kable()
+
 
 
