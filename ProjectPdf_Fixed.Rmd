@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.align="center", out.width = '65%',
 ```
 # Executive Summary
 
-**Overview**
+## Overview
 
 Recommendation systems are the systems that are designed to recommend things to the user based on many different factors.
 
@@ -25,8 +25,7 @@ Suggestions for books on Amazon, or movies on Netflix, are real-world examples o
 
 Recommender systems are an important class of machine learning algorithms. 
 
-
-**Background**
+## Background
 
 MovieLens dataset was collected over a long period of time by GroupLens Research.
 
@@ -52,13 +51,11 @@ The dataset contains the following column for each row:
 
 On average, each user rates 103 movies. This means that each user rated only a subset of the movies based on his preferences, and not all of them.
 
-
-**Goal**
+## Goal
 
 The goal of the project is to analyze movie i characteristics that can affect the rating of a given user u, and by that predict the rating that the user u will rate that movie.
 
-
-**Variable Selection**
+## Variable Selection
 
 1.	The outcome of the movie we are predicting; **Y = rating**
 
@@ -76,7 +73,7 @@ The goal of the project is to analyze movie i characteristics that can affect th
   
   * **Genre**: different genres get rated differently, both in the score and quantity of ratings. We’ll add the genres effect and the time effect to the average rating for movie i and the specific effect of user u.
     
-**Method**
+## Method 
 
   * Divide the MovieLens dataset randomly to train set (“edx”) and validation set (the final hold-out test set)
   
@@ -84,8 +81,7 @@ The goal of the project is to analyze movie i characteristics that can affect th
   
   * Penalize outliers - cross validation in order to find penalty term- diving the data once againin order to prevent overfiting
 
-
-**Model Estimation**
+## Model Estimation
 
 Evaluate model performance based on RMSE (Root Mean Square Error).
 
@@ -93,21 +89,18 @@ RMSE is the standard deviation of the residuals (prediction errors).Residuals ar
 
 The desired RMSE goal we get is **RMSE < 0.8649**
 
-
-**Model Results**
+## Model Results 
 
 The chosen model was test on the validation set and resulted in X <FILL>
 <TABLE>
 
-
-**Conclusion**
+## Conclusion
 
 The chosen model is the one that adds the genres and time effect to the average rating for a movie i and the specific effect of user u.
 
-
 # Data Preperation
 
-**1. Installing Required Packeges**
+## Installing Required Packeges
 
 ```{r required packeges, eval=FALSE, include=FALSE}
 if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
@@ -136,7 +129,7 @@ library(cowplot)
 library(formattable)
 ```
 
-**2. Loading MovieLens Dataset**
+## Loading MovieLens Dataset
 
 ```{r Loading Movielens Dataset, echo=TRUE}
 # MovieLens 10M dataset:
@@ -183,7 +176,7 @@ load("D:/OneDrive/Documents/Tali/Tali data science studies/movielens_dataset/mov
 #rm(dl, ratings, movies, test_index, temp, movielens, removed)
 ```
 
-**3. Get A Glimpse Of Edx Data**  
+## Get A Glimpse Of Edx Data   
 ```{r glimpse Of edx, echo=FALSE}
 glimpse(edx)
 ```
@@ -203,7 +196,7 @@ glimpse(edx)
 
 And 9 million rows. Each row provides a given rating to one movie by specific user. 
 
-**4. Sanitizing the data - timestamp column**
+## Sanitizing the data - timestamp column
 
 The date-time in the 'edx' timestamp column is a point on the timeline, stored as the number of seconds since 1970-01-01 00:00:00 UTC.
 
@@ -222,7 +215,7 @@ Get a glimpse of the sanitized data
 glimpse(edx_year_sanitized)
 ```
 
-**5. The Dataset Overview**
+## The Dataset Overview
 ```{r summarized edx_year_sanitized data, echo=FALSE}
 edx_year_sanitized %>% 
   summarize("Number of users" = n_distinct(userId),
@@ -316,7 +309,7 @@ We'll use the following features: UserId, MovieId, Age of the movie at rating, t
 
 # Analysis And Modeling
 
-**A. Create additional partition of training and test set**
+## Create additional partition of training and test set
 
 In this step, we'll create additional training and test sets, in order to evaluate the accuracy of the models we build and to prevent overfitting of the RMSE.
 
@@ -339,7 +332,7 @@ train_edx <- rbind(train_edx, removed)
 rm(temp, removed)
 ```
 
-**B. RMSE function**
+## RMSE function
 
   * **MSE Function**
   
@@ -374,9 +367,9 @@ RMSE <- function(true_ratings, predicted_ratings){
 } 
 ```
 
-**C. Naive Model** 
+## Naive Model 
 
-  **1. The model**
+### The model
 
 The naive model is the simplest possible recommendation system that predicts the same rating for all movies regardless of the user preferences.
 
@@ -395,7 +388,7 @@ mu_hat <- mean(train_edx$rating)
 mu_hat
 ```
 
-  **2. The model results**
+### The model results
   
 if we predict all unknown ratings with $\mu$ we obtain the following RMSE 
 ```{r naive_rmse}
@@ -412,9 +405,9 @@ The RMSE we got is 1.06, which means our typical error is larger than one star, 
 
 To remind ourselves, the goal is to aspire for RMSE < 0.8649 
 
-**D. userId** 
+## userId 
 
-  **1. User Activity**
+### User Activity
 ```{r Users Ratings summarize, echo=FALSE}
 train_edx %>%  
   group_by(userId) %>% 
@@ -485,7 +478,7 @@ train_edx %>%
   labs(x="Rating score", y="number of users")
 ```
 
-  **2. Model 1 - Modeling User Effect**
+### Model 1 - Modeling User Effect
 
 the previous analysis showed that users are rating different from each other. 
 also, some are very active while others rarely active.  
@@ -587,7 +580,7 @@ test_edx %>%
 ``` 
 The large distribution of the errors in the plot, with the heavy right tail, and MSE closer to 1 indicate low accuracy. 
 
-  **3. Model 1.1 - Modeling Reg. User Effect**
+### Model 1.1 - Modeling Reg. User Effect
 
   **Regularization**
   
@@ -730,9 +723,9 @@ we obtain RMSE= 0.9785479, the penalized estimates does not provide much improve
 
 moving forward by testing the movie specific effect on the predicrion.
 
-**E. movieId**
+## movieId
 
-  **1. Movie Rating**
+### Movie Rating
 ```{r movie summarize, echo=FALSE}
 train_edx %>% 
   group_by(movieId) %>%
@@ -806,7 +799,7 @@ train_edx %>%
   labs(x="Rating score", y="number of movies")
 ```
 
-  **2. Model 2 - Modeling Movie Effect**
+### Model 2 - Modeling Movie Effect
 
 We can augment the naive model by adding the term $b_{i}$ to represent average ranking for movie i:
 
@@ -904,7 +897,7 @@ test_edx %>%
 ```
 The squared errors distribution is large, which indicate low accuracy. The mse distribution tail quite shorter than the User effect model, but can be improved by penalize the outliers. 
 
-  **3. Model 2.1 - Modeling Reg. Movie Effect**
+### Model 2.1 - Modeling Reg. Movie Effect
   
   * The model will look like this:
 
@@ -998,9 +991,9 @@ The size of the circle represent the size of n_i (count of ratings).
 
 When n_i is small, the values are shrinking more toward zero. 
 
-**F. movieId and userId**
+## movieId and userId
 
-  **1. Model 3 - Modeling Movie + User effect**
+### Model 3 - Modeling Movie + User effect
 
 Modeling the movie effect and the user effect seperatly did not offer more than 7%-10% of improvement to the naive RMSE. 
 
@@ -1079,7 +1072,7 @@ test_edx %>%
 Althogh we saw RMSE improvement, the squared error shows large distribution. 
 we will try to "fix" it by the penalizing and reduse very large absulute values of b_i and b_u_i
 
-  **2. Model 3.1 - Modeling Reg. Movie + User effect**
+### Model 3.1 - Modeling Reg. Movie + User effect
   
   * The model will look like this:
 
@@ -1192,9 +1185,9 @@ data_frame(original = fit_user_movie_ave$b_ui,
   geom_point(shape=1, alpha=0.5) 
 ```
  
-**G. Age of the movie at rating**
+## Age of the movie at rating
 
-  **1. How old was the movie during rating**
+### How old was the movie during rating
   
 Having the joint effect of movie and user is not enough since The users ratings are affected by other factors. 
 
@@ -1317,7 +1310,7 @@ train_edx %>%
   ggtitle("")+ 
   labs(x="ave age at rating", y="Average Rating Score") 
 ```
-  **2. Classical Hollywood cinema**
+### Classical Hollywood cinema
 
 Classical Hollywood cinema, a gener of age, is a term used in film criticism to describe both a narrative and visual style of filmmaking which became characteristic of American cinema between the 1910s (rapidly after World War I) and the 1960s.
 
@@ -1352,7 +1345,7 @@ train_edx %>%
   ggtitle("Classical Hollywood cinema movies 1915-1960")+ 
   labs(x="Age of a movie at rating", y="average rating score") 
 ```
-  **3. Model 4 - Reg. User and Age of the movie at rating Effect**
+### Model 4 - Reg. User and Age of the movie at rating Effect
 
 The model will group the age of the movie at rating regardles it title since
 each movie rated several times over the years. 
@@ -1494,7 +1487,7 @@ The model MSE distribution show long right tail that indicate low accuracy.
 
 We'll move forward and look for more influencing factors. 
 
-**H. Time Frame Ranges**
+## Time Frame Ranges
 
 Movie release streched over 93 years, while they first started to be rated after 80 years 
 ```{r time frame ranges, echo=FALSE}
@@ -1504,7 +1497,7 @@ tibble(Year = c("Release", "rate"),
        "Range in years" = Last-First) %>% 
   knitr::kable()
 ```
-  **1. Release year**
+### Release year
 
 The number of ratings for each movie against the year the movie came out
 (Each point represent different movie);
@@ -1580,7 +1573,7 @@ train_edx %>%
   knitr::kable()
 ```
 
-  **2. Rate year**
+### Rate year
   
 The numbers of the movies being rated generaly decreases every year. 
 
@@ -1618,7 +1611,7 @@ score_by_week <-
 grid.arrange(rating_count_per_rate_year,score_by_week, ncol=2)
 ```
 
-  **5. Model 5 - Reg. Movie and User Effect + Time effect**
+### Model 5 - Reg. Movie and User Effect + Time effect 
   
 Time effect along with movie effect and user effect supported by previous analysis. 
 
@@ -1699,9 +1692,9 @@ The model obtain RMSE= 0.8658609, improvement of 18.31501% from the naive RMSE a
 The time effect is beraly significant. 
 
 
-  **I. Genres**
+## Genres
     
-  **1. Genres Overview**
+### Genres Overview
   
 Movies are classified to different geners. Some genres are very popular and contain large amount of movies and some are beraly heard.
 
@@ -1785,7 +1778,7 @@ plot_grid(genres_rating_over_years,genres_score_over_years, ncol=1, align="v")
 
 The analysis shows evidance of genre effect. We'll add the effect to our previous model. 
 
-  **2. Model 6 - Reg. Movie + User Effect + Time Effect + Genres Effect** 
+### Model 6 - Reg. Movie + User Effect + Time Effect + Genres Effect 
 
 The model will look like this:
 
@@ -1850,7 +1843,7 @@ test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
 ```
 
 
-# **Test On Validation**
+# Test On Validation
 
 <TODO> EXPLANATION
 
@@ -1868,7 +1861,7 @@ rbind(naive_model_results,
       model_6_results) %>%
   arrange(MSE)
 ```
-  **1. Data Preparation**
+## Data Preparation
 ```{r test validation}
 test_validation <- 
   validation %>%  
@@ -1878,7 +1871,7 @@ test_validation <-
   select(-timestamp) %>%
   separate_rows(genres, sep="\\|")
 ```
-  **2. Final Model**
+## Final Model
 
   * Fit the model
 ```{r fit final model}
@@ -1916,7 +1909,7 @@ model_final_results <-
 model_final_results
 ```
 
-# **Conclusions**
+# Conclusions
 
 
 
