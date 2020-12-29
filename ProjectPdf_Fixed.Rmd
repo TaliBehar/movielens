@@ -464,7 +464,7 @@ train_edx %>%
   labs(x="userId - 69,878 Unique Users", y="Total Ratings Per User")
 
 ```
-50% of the ratints are between 3 to 4 stars. Some users love every movie they watch and simply rate most of them 5 stars, but the left tail inidicate users that are very critic and rate lot of 1-2 stars. 
+50% of the ratings are between 3 to 4 stars. Some users love every movie they watch and simply rate most of them 5 stars, but the left tail inidicate users that are very critic and rate lot of 1-2 stars. 
 
 ```{r figure 6 user rating score dist, echo=FALSE}
  
@@ -503,7 +503,7 @@ fit_user_ave <-
   group_by(userId) %>% 
   summarize(b_u = mean(rating - mu))
 ```
-  * Predict the rarings - how much our prediction improves once using y=mu+b_u
+  * Predict the ratings - how much our prediction improves once using y=mu+b_u
 ```{r user effect predicted ratings}
 predicted_ratings <- 
   test_edx %>% 
@@ -511,7 +511,7 @@ predicted_ratings <-
   mutate(predicted=mu+b_u) %>%
   pull(predicted)
 ```
-The estimates........ <TODO>
+We can see that the b_u distribution spans a wide symmetric range around 0, which indicates that the users rate equaly for good and bad.
 ```{r figure 7-8 , echo=FALSE}
 
 # plot the user spesific effect - these estimates very substantially
@@ -590,7 +590,7 @@ As mentioned before, RMSE is sensetive to outliers.
 
 outliers can be interuped as b's "mistakes" -
 
-  * Users that systematically rates only 1 stars or only 5 stars 
+  * Users that systematically rate only 1 stars or only 5 stars 
   
   * movies that have only one rating and scored 5 stars will apear as "best" movie, the same for "worst" (1 rating of 1 star). 
 
@@ -604,7 +604,7 @@ Regularization permits us to penalize large estimates that are formed using smal
 
 The general idea is to add a penalty for large values of b's to the sum of squars equation that we minimize, since having many large b's makes it harder to minimize the equation that were trying to minimize. 
 
-We control the total variability of the user effects Specifically, instead of minimizing the least squares equation, we minimize an equation that adds a penalty:
+We control the total variability of the user effects specifically, instead of minimizing the least squares equation, we minimize an equation that adds a penalty:
 
 $$ {\frac{1}{N}\displaystyle\sum_{u,i} ({y}_{u,i}-{\mu}-b_{u,i})^{2}}+{\lambda}\displaystyle\sum_{u,i}{b_{u,i}^{2}} $$
 
@@ -721,7 +721,7 @@ test_edx %>%
   select(reg_squared_errors) %>% 
   summary()
 ```
-we obtain RMSE= 0.9785479, the penalized estimates does not provide much improvement to the RMSE. 
+We obtain RMSE= 0.9785479, the penalized estimates does not provide much improvement to the RMSE. 
 
 moving forward by testing the movie specific effect on the predicrion.
 
@@ -740,7 +740,7 @@ train_edx %>%
 ```
 In average, each one of the 10.6k different movies get rated 674 times.
 
-the movies most frequently gets only 1 ratings, but there are exeptional like "Pulp Fiction" that got rated 3734% (!) more than average with 25169 users ratings.
+The movies most frequently gets only 1 ratings, but there are exeptional like "Pulp Fiction" that got rated 3734% (!) more than average with 25169 users ratings.
 
 the distribution is positively skewed, like the user activity dist., as the mean is larger than the mode and median.
 ```{r figure 10 graph number of rating dist. by number of movies, echo=FALSE}
@@ -830,7 +830,7 @@ predicted_ratings <-
   mutate(predicted = mu + b_i) %>% 
   pull(predicted)
 ```
-The estimates........ <TODO>
+We can see that the b_i distribution more negatively which means moives get lower ratings.
 ```{r figure 13-14, echo=FALSE}
 # plot the movie spesific effect - these estimates very substantially
 movie_b_i <-
@@ -870,7 +870,7 @@ model_2_results <- tibble(method = "Movie Effect",
                           MSE=model_2_mse, RMSE = model_2_rmse)
 model_2_results %>% knitr::kable()
 ```
-We obtain RMSE=0.9439868, improvement of 11% from the naice mosel RMSE
+We obtain RMSE=0.9439868, improvement of 11% from the naive model RMSE, but it's better than the model with just the user effect.
 
   * The model mean squared errors
 ```{r figure 15 plot movie mse, echo=FALSE}
@@ -897,7 +897,7 @@ test_edx %>%
   select(squared_errors) %>% 
   summary()
 ```
-The squared errors distribution is large, which indicate low accuracy. The mse distribution tail quite shorter than the User effect model, but can be improved by penalize the outliers. 
+The squared errors distribution is large, which indicate low accuracy. The MSE distribution tail quite shorter than the user effect model, but can be improved by penalize the outliers. 
 
 ### Model 2.1 - Modeling Reg. Movie Effect
   
@@ -969,7 +969,7 @@ model_2_1_results <- tibble(method = "Reg. Movie Effect",
                             MSE=model_2_1_mse, RMSE = model_2_1_rmse)
 model_2_1_results %>% knitr::kable()
 ```
-The penalized model obtain RMSE= 0.9439218. there is no improvement with the penalty term. 
+The penalized model obtain RMSE= 0.9439218. There is no improvement with the penalty term. 
 ```{r se movie}
 test_edx %>% 
   left_join(fit_reg_movie_ave, by='movieId') %>% 
@@ -979,9 +979,9 @@ test_edx %>%
   select(reg_squared_errors) %>% 
   summary()
 ```
-  * comparing between the estimates
+  * Comparing between the estimates
     
-To see how the estimates shrink, we'll plot the regularized estimates vs. least squre estimates 
+To see how the estimates shrink, we'll plot the regularized estimates vs. least squared estimates 
 ```{r figure 16 estimated plot}
 data_frame(original = fit_movie_ave$b_i, 
            regularlized = fit_reg_movie_ave$reg_b_i, 
@@ -999,9 +999,9 @@ When $n_{i}$ is small, the values are shrinking more toward zero.
 
 Modeling the movie effect and the user effect seperatly did not offer more than 7%-10% of improvement to the naive RMSE. 
 
-common sense tells that althogh each one has its own effect, ussers tend to watch and rate movies for a reason. 
+Common sense tells that although each one has its own effect, users tend to watch and rate movies for a reason. 
 
-Therefore it is much right to medel them together. 
+Therefore it is much right to model them together. 
 
 The model will look like this:
 
@@ -1009,7 +1009,7 @@ $$ Y_{u, i} = \mu + \ b_{i}+b_{u,i} + \epsilon_{u, i} $$
 
 $b_{u,i}$ - average rating for movie i with user specific effect.
 
-In this case, if a cranky user (= negative $b_{u,i}$) rates a great movie (= positive $b_{i}$ ), the effects counter each other and we may be able to correctly predict that this user gave this great movie a 3 rather than a 5, and that should improve our prediction.
+In this case, if a cranky user (= negative $b_{u,i}$) rates a great movie (= positive $b_{i}$ ), the effects counter each other and we may be able to correctly predict that this user rated this great movie with 3 stars rather than 5 stars, and that should improve our prediction.
 
   * Fit the model
 ```{r fit movie user ave}
@@ -1019,7 +1019,7 @@ fit_user_movie_ave <-
   group_by(userId) %>%
   summarize(b_ui = mean(rating - mu - b_i))
 ```
-  * Predict the rarings - how much our prediction improves once using y=mu+b_i+b_ui
+  * Predict the ratings - how much our prediction improves once using y=mu+b_i+b_ui
 ```{r movie user predicted ratings}
 predicted_ratings <- 
   test_edx %>% 
@@ -1041,7 +1041,7 @@ model_3_results <- tibble(method = "Movie + User Effect",
                           MSE=model_3_mse, RMSE = model_3_rmse)
 model_3_results %>% knitr::kable()
 ```
-The model RMSE= 0.8666408, 18.2% improvement from the naive model. 
+The model RMSE= 0.8666408, 18.2% improvement from the naive model, which is already very significant and shows good correlation between user and a movie.  
 
   * The model mean squared errors 
 ```{r figure 17 plot movie and user mse, echo=FALSE}
@@ -1072,7 +1072,7 @@ test_edx %>%
   summary()
 ```
 Althogh we saw RMSE improvement, the squared error shows large distribution. 
-we will try to "fix" it by the penalizing, and reduse very large absulute values of ${b_{i}}$ and ${b_{u,i}}$
+We will try to "fix" it by the penalizing, and reduce very large absolute values of ${b_{i}}$ and ${b_{u,i}}$
 
 ### Model 3.1 - Modeling Reg. Movie + User effect
   
@@ -1126,7 +1126,7 @@ penalty_lambda_rmse <- c(lambde=penalty_term,
                          cv_rmse=movie_user_rmses[lambda=penalty_term])
 penalty_lambda_rmse
 ```
-  * apply lambda on edx train and test set
+  * Apply lambda on edx train and test set
 ```{r fet reg movie user ave}
 fit_reg_movie_ave <- 
   train_edx %>%
@@ -1164,7 +1164,7 @@ model_3_1_results <- tibble(method = "Reg. Movie + User Effect",
                             MSE=model_3_1_mse, RMSE = model_3_1_rmse)
 model_3_1_results %>% knitr::kable()
 ```
-The penalized model obtain RMSE = 0.8659649
+The penalized model obtain RMSE = 0.8659649 which takes us even closer to our goal.
 
   * The model reg squared errors summary
 ```{r reg movie user squared errors summary, echo=FALSE}
@@ -1176,7 +1176,7 @@ test_edx %>%
   select(reg_squared_errors) %>% 
   summary()
 ```
-  * comparing between the estimates
+  * Comparing between the estimates
     
 To see how the estimates shrink, we'll plot the regularized estimates vs. least squre estimates 
 ```{r figure 18 plot estimate}
@@ -1191,11 +1191,11 @@ data_frame(original = fit_user_movie_ave$b_ui,
 
 ### How old was the movie during rating
   
-Having the joint effect of movie and user is not enough since The users ratings are affected by other factors. 
+Having the joint effect of movie and user is not enough since the users ratings are affected by other factors. 
 
-One factor for exampe, is the age of the movie at rating. There are users that likes the quality of "old times" movies and favors aged movies, regardless of the specific movie. It can be considered as "Old Movies Gener".
+One factor for exampe, is the age of the movie at rating. There are users that likes the quality of "old times" movies and favors aged movies, regardless of the specific movie. It can be considered as "Old Movies Genre".
 
-we will model the effect of the age of the movie on the user.
+We will model the effect of the age of the movie on the user.
 
 We also need to rememmber that a movie can be rated multiple times by different users at different years. 
 
@@ -1212,14 +1212,14 @@ train_edx %>%
 ```
 The average age of the movies is 12 years. 
 
-The yungest movies being rated were the ones thet rated the same year of release. the oldest is 93 years old. 
+The youngest movies being rated were the ones that rated the same year of release. The oldest is 93 years old. 
 
-most frequently rated are movies one year after they released. 
+Most frequently rated are movies one year after they released. 
 
 The next tile plot shows the average score of the movies at rating vs. their release year. 
-The tiled colors represent the rate score; darker tile indicate higher score.
+The tiled colors represent the rate score; darker tile indicates higher score.
 
-we can see that older movies score higher in average, but the effect is not significant.  
+We can see that older movies score higher in average, but the effect is not much significant.  
 
 ```{r figur 19-20, echo=FALSE}
 
@@ -1259,9 +1259,9 @@ plot_grid(ave_scoring_by_age, scoring_by_age, ncol=1, align="v")
 ```
 The next table show example of movies with more than total of 1000 ratings, that released in 1984. 
 
-The rate years are 1999-2000, means the age of the movies at rating is around 3 to 4 years. 
+The rate years are 1999-2000, which means the age of the movies at rating is around 3 to 4 years. 
 
-in this random example we can see the change of the average rating csore for each movie by its age, and the average rate score of the entire rate year.  
+In this random example we can see the change of the average rating score for each movie by its age, and the average rate score of the entire rate year.  
 
  * 1984 release year example (filter movies with less than 1000 ratings)
 ```{r 1984 release year example, echo=FALSE}
@@ -1296,7 +1296,7 @@ train_edx %>%
   labs(x="Age of a movie at rating", y="Average rating score")
 ```
 The points at the plot represent different movies. 
-There are much more newer movies than older, However there is some avidence for age effect 
+There are many more newer movies than older, however there is some evidence for age effect 
 ```{r figure 22 avidence for age effect, echo=FALSE}
 
 train_edx %>% 
@@ -1314,11 +1314,11 @@ train_edx %>%
 ```
 ### Classical Hollywood cinema
 
-Classical Hollywood cinema, a gener of age, is a term used in film criticism to describe both a narrative and visual style of filmmaking which became characteristic of American cinema between the 1910s (rapidly after World War I) and the 1960s.
+Classical Hollywood cinema, a genre of age, is a term used in film criticism to describe both a narrative and visual style of filmmaking which became characteristic of American cinema between the 1910s (rapidly after World War I) and the 1960s.
 
-(https://en.wikipedia.org/wiki/Classical_Hollywood_cinema) # TO DO - HYPERLINK
+(https://en.wikipedia.org/wiki/Classical_Hollywood_cinema)
 
-There are 1.3k Classical Hollywood cinema movies in our data with average age of 54 years old and average rating of 3.9 stars, 0.4 stara more than the general averge.   
+There are 1.3k Classical Hollywood cinema movies in our data with average age of 54 years old and average rating of 3.9 stars, 0.4 star more than the general average.   
 ```{r classical summarize, echo=FALSE}
 train_edx %>% 
   mutate(age_at_rating= abs(rate_year-release_year)) %>%
@@ -1349,10 +1349,10 @@ train_edx %>%
 ```
 ### Model 4 - Reg. User and Age of the movie at rating Effect
 
-The model will group the age of the movie at rating regardles it title since
+The model will group the age of the movie at rating regardles of its title since
 each movie rated several times over the years. 
 
-Previous analysis on the user effect taught us that the model shuold be penalized, also, the analysis on the age at rating indicate of large variation between the rating counts and the rating scores.
+Previous analysis on the user effect taught us that the model should be penalized, also, the analysis on the age at rating indicate of large variation between the rating counts and the rating scores.
 
 The model will look like this:
 $$ Y_{u, i} = \mu + \ {\lambda}b_{u}+b_{a} + \epsilon_{u, i} $$
@@ -1486,13 +1486,13 @@ test_edx %>%
   ggtitle("User + Age at rating model MSE dist. ")+ 
   labs(x="Mean squared errors", y="number of users")
 ```
-The model MSE distribution show long right tail that indicate low accuracy. 
+The model MSE distribution show long right tail that indicates low accuracy. 
 
 We'll move forward and look for more influencing factors. 
 
 ## Time Frame Ranges
 
-Movie release streched over 93 years, while they first started to be rated after 80 years 
+Movie release stretched over 93 years, while they first started to be rated after 80 years 
 ```{r time frame ranges, echo=FALSE}
 tibble(Year = c("Release", "rate"),
        First = c(min(train_edx$release_year),min(train_edx$rate_year)), 
@@ -1503,7 +1503,7 @@ tibble(Year = c("Release", "rate"),
 ### Release year
 
 The number of ratings for each movie against the year the movie came out
-(Each point represent different movie);
+(each point represents a different movie);
 ```{r figur 25 number of rating per movie over time, echo=FALSE, out.width = '80%'}
 
 train_edx %>% 
@@ -1519,7 +1519,7 @@ train_edx %>%
   ggtitle("number of rating for each movie per release year")+ 
   labs(x="Movie Release Year", y="number of ratings per movie") 
 ```
-362 movies that releasd in 1995 got the higest ratings count.
+362 movies that releasd in 1995 got the highest ratings count.
 
 Movies that released between the years 1992-1999 shows above average ratings count while starting in 1993 the number of the movies being rated decreases with year. 
 
@@ -1544,7 +1544,7 @@ train_edx %>%
 ```
 The next plot shows post-1993 movies - ratings per year and their average ratings. Each point represent unique movie. 
 
-As the rating per year increases, the average rate score increases, in other words; The more often a movie is rated, the higher its average rating.  
+As the rating per year increases, the average rate score increases, in other words, the more often a movie is rated, the higher its average rating.  
 ```{r figure 27 post-1993 movies, echo=FALSE}
 
 train_edx %>% 
@@ -1578,9 +1578,9 @@ train_edx %>%
 
 ### Rate year
   
-The numbers of the movies being rated generaly decreases every year. 
+The number of the movies being rated generally decreases every year. 
 
-The trend of the average rating score is not distinct, but both plot indicate that there is some evidence of a time effect on average rating.
+The trend of the average rating score is not distinct, but both plots indicate that there is some evidence of a time effect on average rating.
 ```{r figure 28-29 time effect evidance, echo=FALSE, out.width = '80%'}
 # graph Number of movies per each rate year
 
@@ -1618,7 +1618,7 @@ grid.arrange(rating_count_per_rate_year,score_by_week, ncol=2)
   
 Time effect along with movie effect and user effect supported by previous analysis. 
 
-We'll create a model that add a time effect to the regularized movie and user joint model. 
+We'll create a model that adds a time effect to the regularized movie and user joint model. 
 
 We define d_ui as the day for user's u rating of movie i. 
 
@@ -1654,7 +1654,7 @@ predicted_ratings <-
 model_5_rmse <- RMSE(true_ratings=test_edx$rating,
                      predicted_ratings=predicted_ratings)
 
-model_5_mse <- MSE(test_edx$rating,reg_predicted_ratings)
+model_5_mse <- MSE(test_edx$rating,predicted_ratings)
 
 #add the results to the table 
 model_5_results <- tibble(method = "Reg. Movie + User Effect + Time effect",
@@ -1693,29 +1693,29 @@ test_edx %>%
 ```
 The model obtain RMSE= 0.8658609, improvement of 18.31501% from the naive RMSE and just 0.01% improvement from the regularized movie and user effect model. 
 
-The time effect is beraly significant. 
+The time effect is barely significant. 
 
 
 ## Genres
     
 ### Genres Overview
   
-Movies are classified to different geners. Some genres are very popular and contain large amount of movies and some are beraly heard.
+Movies are classified to different genres. Some genres are very popular and contain large amount of movies and some are barely heard of.
 
-In addition, Different users tend to favor certain genres over others and target their watching and rating habits toward them. 
+In addition, different users tend to favor certain genres over others and target their watching and rating habits toward them. 
 
-The genres column include every gener that aplies to the movie. Some movies fall under several geners as folowing; 
+The genres column include every genre that apllies to the movie. Some movies fall under several genres as folowing; 
 ```{r example of the diffrent geners, echo=FALSE}
 # example of the diffrent geners
 train_edx[20:23,] %>% select (title,genres) 
 ```
-We'll separat the edx train and test sets rows for unique genres.
-Movie with more than one genre will split into several rows, each row represent a unique genre. 
+We'll separate the edx train and test sets rows for unique genres.
+Movie with more than one genre will split into several rows, each row represents a unique genre. 
 ```{r }
 train_edx_genres <- train_edx %>%  separate_rows(genres, sep="\\|")
 test_edx_genres <- test_edx %>%  separate_rows(genres, sep="\\|")
 ```
-The Distribution of the geners by their total ratings and total average score as follow; 
+The distribution of the genres by their total ratings and total average score as follow; 
 ```{r figure 31 gener dist, echo=FALSE}
 
 train_edx_genres %>% 
@@ -1727,14 +1727,14 @@ train_edx_genres %>%
   ggplot(aes(ave_rating,percentage))+
   geom_point()+
   geom_text(aes(label=genres), size=3,  hjust=0,vjust=0)+
-  ggtitle("Distribution of movies for each gener")+ 
+  ggtitle("Distribution of movies for each genre")+ 
   labs(x="average rating score", y="percentage of the rating count")
 ```
 There are 19 uniqe genres. 
 
 Drama genre leads with 17% of total ratings and the highst average score. 
 
-The genres with average score over 3.4 stars and on top 20 quantile of total ratings are the foliwing; 
+The genres with average score over 3.4 stars and on top 20 quantile of total ratings are the following; 
 ```{r filter genres, echo=FALSE}
 train_edx_genres %>% 
   group_by(genres) %>% 
@@ -1847,10 +1847,15 @@ test_edx_genres %>% mutate(week = round_date(rate_date, unit = "week")) %>%
   labs(x="Mean squared errors", y="number of movies")
 ```
 
+We have reached our final goal, and all the features got included in the model which indicates good correlation between them. We'll examine the model on the validation set.
 
 # Test On Validation
 
-<TODO> EXPLANATION
+Following is a summary of all models and their RMSE, and the most accurate one is the one that took into account all the features: 
+
+Reg. Movie + User Effect + Time Effect + Genres Effect 
+
+$$ Y_{u, i} = \mu + \ {\lambda}(b_{i}+b_{u,i}) + f(d_{u,i}) + \displaystyle\sum_{k=1}^K{x_{u,i}{\beta_{k}}} +\epsilon_{u, i} $$
 
 ```{r echo=FALSE}
 ### Models results table
@@ -1877,7 +1882,7 @@ test_validation <-
   select(-timestamp) %>%
   separate_rows(genres, sep="\\|")
 ```
-## Final Model
+## Final Model Examination
 
   * Fit the model
 ```{r fit final model}
@@ -1917,6 +1922,12 @@ model_final_results %>% knitr::kable()
 ```
 
 # Conclusions
+
+The test validation showed even better results than the results we obtained while training the model, which means that the algorithm can act standalone in the future.
+
+  * Future work: we can further add more personalized info on the user, such as age, sex, origin in order to make the model even more accurate.
+  
+  * Limitations: the dataset size impacted our ability to try and fit more targeted models such as KNN and Matrix Factorization, simply because our peronal computer couldn't handle the load. From the same reasons, it was also challenging to run statistical queries on our current model. Running these in a cloud computing environemtn would simplify this process.
 
 
 
